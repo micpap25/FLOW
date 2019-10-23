@@ -123,7 +123,7 @@ public class Player : MonoBehaviour {
 		}
 		if (health <= 0)
 			Destroy (gameObject);
-		if (opponent.transform.position.x < gameObject.transform.position.x)
+		if (opponent.transform.position.x < transform.position.x)
 			facing = "right";
 		else
 			facing = "left";
@@ -157,13 +157,13 @@ public class Player : MonoBehaviour {
 		if (dashTime > 0) {
 			if (facing.Equals ("left") && dashdir.Equals ("front") || facing.Equals ("right") && dashdir.Equals ("back")) {
 				if (Input.GetKeyDown (KeyCode.UpArrow)) {
-					GetComponent<Rigidbody2D> ().AddForce (new Vector2 (-moveSpeed * jumpSpeed * 200 * (dashSpeed / moveSpeed), 250 * jumpSpeed));
+					GetComponent<Rigidbody2D> ().AddForce (new Vector2 (-moveSpeed * jumpSpeed * 100 * (dashSpeed / moveSpeed), 250 * jumpSpeed));
 					dashTime = 0;
 				} else
 					Walk (-dashSpeed);
 			} else {
 				if (Input.GetKeyDown (KeyCode.UpArrow)) {
-					GetComponent<Rigidbody2D> ().AddForce (new Vector2 (moveSpeed * jumpSpeed * 200 * (dashSpeed / moveSpeed), 250 * jumpSpeed));
+					GetComponent<Rigidbody2D> ().AddForce (new Vector2 (moveSpeed * jumpSpeed * 100 * (dashSpeed / moveSpeed), 250 * jumpSpeed));
 					dashTime = 0;
 				} else
 					Walk (dashSpeed);

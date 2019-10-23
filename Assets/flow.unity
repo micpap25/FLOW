@@ -145,9 +145,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playerName: 
   health: 100
-  moveSpeed: 0.5
-  dashSpeed: 1
-  jumpSpeed: 15
+  moveSpeed: 0
+  dashSpeed: 0
+  jumpSpeed: 10
   facing: 
   startInputRefreshTime: 10
   startDashTime: 10
@@ -233,7 +233,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_Sprite: {fileID: 21300000, guid: 44cb9f93ad3bd5247b33147ae354bb1a, type: 3}
+  m_Sprite: {fileID: 21300000, guid: d84c4da3070ba67479d6516b31a83b92, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -308,14 +308,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playerName: 
   health: 100
-  moveSpeed: 0.7
-  dashSpeed: 1.5
+  moveSpeed: 0.4
+  dashSpeed: 1
   jumpSpeed: 20
   facing: 
   startInputRefreshTime: 10
   startDashTime: 10
   canCrawl: 1
-  crawlSpeed: 0.3
+  crawlSpeed: 0.1
   crouchScale: 0.5
 --- !u!212 &858554846
 SpriteRenderer:
@@ -351,7 +351,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_Sprite: {fileID: 21300000, guid: 44cb9f93ad3bd5247b33147ae354bb1a, type: 3}
+  m_Sprite: {fileID: 21300000, guid: d84c4da3070ba67479d6516b31a83b92, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -587,7 +587,7 @@ Transform:
   m_GameObject: {fileID: 1609455057}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: -5.5, z: 0}
-  m_LocalScale: {x: 100, y: 5, z: 1}
+  m_LocalScale: {x: 1000, y: 5, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 1
