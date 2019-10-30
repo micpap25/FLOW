@@ -52,8 +52,10 @@
   </ItemGroup>
   <ItemGroup>
      <Compile Include="Assets\CameraControls.cs" />
+     <Compile Include="Assets\gameManager.cs" />
      <Compile Include="Assets\PlatformerPlayer.cs" />
-     <Compile Include="Assets\Player.cs" />
+     <Compile Include="Assets\Player1.cs" />
+     <Compile Include="Assets\Player2.cs" />
  <Reference Include="UnityEngine.UI">
  <HintPath>C:/Program Files/Unity/Hub/Editor/2017.3.1f1/Editor/Data/UnityExtensions/Unity/GUISystem/UnityEngine.UI.dll</HintPath>
  </Reference>
