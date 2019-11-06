@@ -60,7 +60,10 @@ public class Player1 : MonoBehaviour
     private Animator anim;
     private GameObject opponent;
     private Rigidbody2D rb;
+    private Camera camera;
     private float oldsize;
+    private LayerMask enemies;
+    public GameObject visualizer;
 
     // Use this for initialization
     void Start()
@@ -114,13 +117,17 @@ public class Player1 : MonoBehaviour
         oldsize = boxcol.size.y;
         rb = GetComponent<Rigidbody2D>();
         anim = GetComponent<Animator>();
+        camera = Camera.main;
         opponent = GameObject.FindGameObjectWithTag("Player2");
+        enemies = LayerMask.GetMask("Player2");
 
     }
 
     // Update is called once per frame
     void FixedUpdate()
     {
+        bool right = Input.GetKey(KeyCode.D);
+        bool left = Input.GetKey(KeyCode.A);
         //set important stuff first
         if (!Input.GetKey(KeyCode.S))
         {
@@ -193,23 +200,226 @@ public class Player1 : MonoBehaviour
             }
             dashTime--;
         }
-        //check for actions that can only be taken in neutral (walking, dashing, blocking)
-        else if (hitstun == 0 && endlag == 0 && isAirborne == false)
+
+        if (Input.GetKeyDown(KeyCode.A))
         {
-            if (Input.GetKey(KeyCode.S))
+            if (facing == "left")
+                keyword = "front";
+            else
+                keyword = "back";
+            if (BackDash[0].Equals(keyword))
             {
-                //Include stuff for inputs  here at some point
-                isCrouching = true;
-                crouchAdjusted = false;
-                if (canCrawl)
+                BackDash.RemoveAt(0);
+                if (BackDash.Count == 0)
+                {
+                    dashTime = startDashTime;
+                    dashdir = "back";
+                    inputRefreshTime = 0;
+                    //facing == 
+                    BackDash = new List<string>(BackDashInput);
+                }
+                else
+                    inputRefreshTime = 500;
+            }
+            else
+            {
+                BackDash = new List<string>(BackDashInput);
+                inputRefreshTime = 0;
+            }
+
+            if (FrontDash[0].Equals(keyword))
+            {
+                FrontDash.RemoveAt(0);
+                if (FrontDash.Count == 0)
+                {
+                    dashTime = startDashTime;
+                    dashdir = "front";
+                    inputRefreshTime = 0;
+                    FrontDash = new List<string>(FrontDashInput);
+                }
+                else
+                    inputRefreshTime = 500;
+            }
+            else
+            {
+                FrontDash = new List<string>(FrontDashInput);
+                inputRefreshTime = 0;
+            }
+        }
+
+        if (Input.GetKeyDown(KeyCode.D))
+        {
+
+            //setting the keyword
+            if (facing == "left")
+                keyword = "back";
+            else
+                keyword = "front";
+            if (BackDash[0].Equals(keyword))
+            {
+                BackDash.RemoveAt(0);
+                if (BackDash.Count == 0)
+                {
+                    dashTime = startDashTime;
+                    inputRefreshTime = 0;
+                    dashdir = "back";
+                    BackDash = new List<string>(BackDashInput);
+                }
+                else
+                    inputRefreshTime = 500;
+            }
+            else
+            {
+                BackDash = new List<string>(BackDashInput);
+                inputRefreshTime = 0;
+            }
+            if (FrontDash[0].Equals(keyword))
+            {
+                FrontDash.RemoveAt(0);
+                if (FrontDash.Count == 0)
+                {
+                    dashTime = startDashTime;
+                    inputRefreshTime = 0;
+                    dashdir = "front";
+                    FrontDash = new List<string>(FrontDashInput);
+                }
+                else
+                    inputRefreshTime = 500;
+            }
+            else
+            {
+                FrontDash = new List<string>(FrontDashInput);
+                inputRefreshTime = 0;
+            }
+        }
+
+        //check for actions that can only be taken in neutral (walking, dashing, blocking)
+        else if (hitstun == 0 && endlag == 0)
+        {
+
+            if (!isAirborne)
+            {
+                if (Input.GetKey(KeyCode.S))
+                {
+                    //Include stuff for inputs  here at some point
+                    isCrouching = true;
+                    crouchAdjusted = false;
+                    if (canCrawl)
+                    {
+                        if (Input.GetKey(KeyCode.A))
+                            Walk(-crawlSpeed);
+                        if (Input.GetKey(KeyCode.D))
+                            Walk(crawlSpeed);
+                    }
+                }
+                else if (Input.GetKeyDown(KeyCode.W))
                 {
                     if (Input.GetKey(KeyCode.A))
-                        Walk(-crawlSpeed);
-                    if (Input.GetKey(KeyCode.D))
-                        Walk(crawlSpeed);
+                    {
+                        GetComponent<Rigidbody2D>().AddForce(new Vector2(-moveSpeed * jumpSpeed * 150, 250 * jumpSpeed));
+                    }
+                    else if (Input.GetKey(KeyCode.D))
+                    {
+                        GetComponent<Rigidbody2D>().AddForce(new Vector2(moveSpeed * jumpSpeed * 150, 250 * jumpSpeed));
+                    }
+                    else
+                    {
+                        GetComponent<Rigidbody2D>().AddForce(new Vector2(0, jumpSpeed * 250));
+                    }
+                }
+
+                else if (left)
+                {
+                    Walk(-moveSpeed);
+                }
+
+                else if (right)
+                {
+                    Walk(moveSpeed);
                 }
             }
-            else if (Input.GetKeyDown(KeyCode.W))
+
+
+            if (isAirborne)
+            {
+                if (Input.GetKey(KeyCode.S))
+                {
+                    if (Input.GetKeyDown(KeyCode.U))
+                        AttackChecker(false, false, true, true, false);
+                    if (Input.GetKeyDown(KeyCode.I))
+                        AttackChecker(false, true, true, true, false);
+                    if (Input.GetKeyDown(KeyCode.J))
+                        AttackChecker(true, false, true, true, false);
+                    if (Input.GetKeyDown(KeyCode.K))
+                        AttackChecker(true, true, true, true, false);
+                }
+                else
+                {
+                    if (Input.GetKeyDown(KeyCode.U))
+                        AttackChecker(false, false, false, true, false);
+                    if (Input.GetKeyDown(KeyCode.I))
+                        AttackChecker(false, true, false, true, false);
+                    if (Input.GetKeyDown(KeyCode.J))
+                        AttackChecker(true, false, false, true, false);
+                    if (Input.GetKeyDown(KeyCode.K))
+                        AttackChecker(true, true, false, true, false);
+                }
+            }
+            else
+            {
+                if (left && facing.Equals("left") || right && facing.Equals("right") && Input.GetKey(KeyCode.S))
+                {
+                    if (Input.GetKeyDown(KeyCode.U))
+                        AttackChecker(false, false, true, false, true);
+                    if (Input.GetKeyDown(KeyCode.I))
+                        AttackChecker(false, true, true, false, true);
+                    if (Input.GetKeyDown(KeyCode.J))
+                        AttackChecker(true, false, true, false, true);
+                    if (Input.GetKeyDown(KeyCode.K))
+                        AttackChecker(true, true, true, false, true);
+                }
+                else if (left && facing.Equals("left") || right && facing.Equals("right"))
+                {
+                    if (Input.GetKeyDown(KeyCode.U))
+                        AttackChecker(false, false, true, false, false);
+                    if (Input.GetKeyDown(KeyCode.I))
+                        AttackChecker(false, true, true, false, false);
+                    if (Input.GetKeyDown(KeyCode.J))
+                        AttackChecker(true, false, true, false, false);
+                    if (Input.GetKeyDown(KeyCode.K))
+                        AttackChecker(true, true, true, false, false);
+                }
+                else if (Input.GetKey(KeyCode.S))
+                {
+                    if (Input.GetKeyDown(KeyCode.U))
+                        AttackChecker(false, false, true, false, true);
+                    if (Input.GetKeyDown(KeyCode.I))
+                        AttackChecker(false, true, true, false, true);
+                    if (Input.GetKeyDown(KeyCode.J))
+                        AttackChecker(true, false, true, false, true);
+                    if (Input.GetKeyDown(KeyCode.K))
+                        AttackChecker(true, true, true, false, true);
+                }
+                else
+                {
+                    if (Input.GetKeyDown(KeyCode.U))
+                        AttackChecker(false, false, false, false, false);
+                    if (Input.GetKeyDown(KeyCode.I))
+                        AttackChecker(false, true, false, false, false);
+                    if (Input.GetKeyDown(KeyCode.J))
+                        AttackChecker(true, false, false, false, false);
+                    if (Input.GetKeyDown(KeyCode.K))
+                        AttackChecker(true, true, false, false, false);
+                }
+            }
+            //TODO: set canblocks here
+
+
+        }
+        //check for actions that can be taken in either neutral or mid-attack(jumping, attacking, inputs for specials, supers)
+        else if (hitstun == 0 && canCancel)
+        {
+            if (Input.GetKeyDown(KeyCode.W))
             {
                 if (Input.GetKey(KeyCode.A))
                 {
@@ -224,119 +434,78 @@ public class Player1 : MonoBehaviour
                     GetComponent<Rigidbody2D>().AddForce(new Vector2(0, jumpSpeed * 250));
                 }
             }
-
-            else if (Input.GetKey(KeyCode.A))
+            if (isAirborne)
             {
-                //setting the keyword
-                if (facing == "left")
-                    keyword = "front";
-                else
-                    keyword = "back";
-                if (Input.GetKeyDown(KeyCode.A))
+                if (Input.GetKey(KeyCode.S))
                 {
-                    if (BackDash[0].Equals(keyword))
-                    {
-                        BackDash.RemoveAt(0);
-                        if (BackDash.Count == 0)
-                        {
-                            dashTime = startDashTime;
-                            dashdir = "back";
-                            inputRefreshTime = 0;
-                            //facing == 
-                            BackDash = new List<string>(BackDashInput);
-                        }
-                        else
-                            inputRefreshTime = 500;
-                    }
-                    else
-                    {
-                        BackDash = new List<string>(BackDashInput);
-                        inputRefreshTime = 0;
-                    }
-
-                    if (FrontDash[0].Equals(keyword))
-                    {
-                        FrontDash.RemoveAt(0);
-                        if (FrontDash.Count == 0)
-                        {
-                            dashTime = startDashTime;
-                            dashdir = "front";
-                            inputRefreshTime = 0;
-                            FrontDash = new List<string>(FrontDashInput);
-                        }
-                        else
-                            inputRefreshTime = 500;
-                    }
-                    else
-                    {
-                        FrontDash = new List<string>(FrontDashInput);
-                        inputRefreshTime = 0;
-                    }
+                    if (Input.GetKeyDown(KeyCode.U))
+                        AttackChecker(false, false, true, true, false);
+                    if (Input.GetKeyDown(KeyCode.I))
+                        AttackChecker(false, true, true, true, false);
+                    if (Input.GetKeyDown(KeyCode.J))
+                        AttackChecker(true, false, true, true, false);
+                    if (Input.GetKeyDown(KeyCode.K))
+                        AttackChecker(true, true, true, true, false);
                 }
-                //do the rest for other inputs later
                 else
                 {
-                    Walk(-moveSpeed);
+                    if (Input.GetKeyDown(KeyCode.U))
+                        AttackChecker(false, false, false, true, false);
+                    if (Input.GetKeyDown(KeyCode.I))
+                        AttackChecker(false, true, false, true, false);
+                    if (Input.GetKeyDown(KeyCode.J))
+                        AttackChecker(true, false, false, true, false);
+                    if (Input.GetKeyDown(KeyCode.K))
+                        AttackChecker(true, true, false, true, false);
                 }
             }
-            else if (Input.GetKey(KeyCode.D))
+            else
             {
-                //setting the keyword
-                if (facing == "left")
-                    keyword = "back";
-                else
-                    keyword = "front";
-                if (Input.GetKeyDown(KeyCode.D))
+                if (left && facing.Equals("left") || right && facing.Equals("right") && Input.GetKey(KeyCode.S))
                 {
-                    if (BackDash[0].Equals(keyword))
-                    {
-                        BackDash.RemoveAt(0);
-                        if (BackDash.Count == 0)
-                        {
-                            dashTime = startDashTime;
-                            inputRefreshTime = 0;
-                            dashdir = "back";
-                            BackDash = new List<string>(BackDashInput);
-                        }
-                        else
-                            inputRefreshTime = 500;
-                    }
-                    else
-                    {
-                        BackDash = new List<string>(BackDashInput);
-                        inputRefreshTime = 0;
-                    }
-                    if (FrontDash[0].Equals(keyword))
-                    {
-                        FrontDash.RemoveAt(0);
-                        if (FrontDash.Count == 0)
-                        {
-                            dashTime = startDashTime;
-                            inputRefreshTime = 0;
-                            dashdir = "front";
-                            FrontDash = new List<string>(FrontDashInput);
-                        }
-                        else
-                            inputRefreshTime = 500;
-                    }
-                    else
-                    {
-                        FrontDash = new List<string>(FrontDashInput);
-                        inputRefreshTime = 0;
-                    }
+                    if (Input.GetKeyDown(KeyCode.U))
+                        AttackChecker(false, false, true, false, true);
+                    if (Input.GetKeyDown(KeyCode.I))
+                        AttackChecker(false, true, true, false, true);
+                    if (Input.GetKeyDown(KeyCode.J))
+                        AttackChecker(true, false, true, false, true);
+                    if (Input.GetKeyDown(KeyCode.K))
+                        AttackChecker(true, true, true, false, true);
                 }
-
-                //do the rest for other inputs later
-                else
+                else if (left && facing.Equals("left") || right && facing.Equals("right"))
                 {
-                    Walk(moveSpeed);
+                    if (Input.GetKeyDown(KeyCode.U))
+                        AttackChecker(false, false, true, false,false);
+                    if (Input.GetKeyDown(KeyCode.I))
+                        AttackChecker(false, true, true, false, false);
+                    if (Input.GetKeyDown(KeyCode.J))
+                        AttackChecker(true, false, true, false, false);
+                    if (Input.GetKeyDown(KeyCode.K))
+                        AttackChecker(true, true, true, false, false);
+                }
+                else if (Input.GetKey(KeyCode.S))
+                {
+                    if (Input.GetKeyDown(KeyCode.U))
+                        AttackChecker(false, false, true, false, true);
+                    if (Input.GetKeyDown(KeyCode.I))
+                        AttackChecker(false, true, true, false, true);
+                    if (Input.GetKeyDown(KeyCode.J))
+                        AttackChecker(true, false, true, false, true);
+                    if (Input.GetKeyDown(KeyCode.K))
+                        AttackChecker(true, true, true, false, true);
+                }
+                else 
+                {
+                    if (Input.GetKeyDown(KeyCode.U))
+                        AttackChecker(false, false, false, false, false);
+                    if (Input.GetKeyDown(KeyCode.I))
+                        AttackChecker(false, true, false, false, false);
+                    if (Input.GetKeyDown(KeyCode.J))
+                        AttackChecker(true, false, false, false, false);
+                    if (Input.GetKeyDown(KeyCode.K))
+                        AttackChecker(true, true, false, false, false);
                 }
             }
-
-        }
-        //check for actions that can be taken in either neutral or mid-attack(jumping, attacking, inputs for specials, supers)
-        else if (hitstun == 0)
-        {
         }
         //check for actions that can only be taken during hitstun(breaking out of hitstun)
         else if (hitstun != 0)
@@ -350,7 +519,7 @@ public class Player1 : MonoBehaviour
         if (endlag > 0)
             endlag--;
         if (endlag < 0)
-            endlag = 0;
+           endlag = 0;
         if (inputRefreshTime == 1)
         {
             FrontDash = new List<string>(FrontDashInput);
@@ -371,30 +540,169 @@ public class Player1 : MonoBehaviour
         gameObject.transform.Translate(speed, 0, 0);
     }
     //Attack types info:
-    //First is always attack height. High means only stand block works, low means only crouch block works, mid means anything works. 
+    //First is always attack height. High means only stand block works, low means only crouch block works, mid means anything works.
+    //Next is if the attack has light, medium, or hard knockback
     //Arm, leg, and weapon are there for cancels.
     //Do the rest later.
 
     //figure out what the attack is. going to be massive as more characters are added. Should probably simplify but I like self destruction
-    void AttackChecker()
+    //TODO: ADD CROUCHING STUFF
+    void AttackChecker(bool isKick, bool isHeavy, bool isDirectional, bool isAirborne, bool isCrouching)
     {
+        if (isKick)
+        {
+            if (isHeavy)
+            {
+                if (isDirectional)
+                {
+                    if (isAirborne)
+                    {
+
+                    }
+                    else
+                    {
+
+                    }
+                }
+                else
+                {
+                    if (isAirborne)
+                    {
+
+                    }
+                    else
+                    {
+
+                    }
+                }
+            }
+            else
+            {
+                if (isDirectional)
+                {
+                    if (isAirborne)
+                    {
+
+                    }
+                    else
+                    {
+
+                    }
+                }
+                else
+                {
+                    if (isAirborne)
+                    {
+
+                    }
+                    else
+                    {
+
+                    }
+                }
+            }
+        }
+        else
+        {
+            if (isHeavy)
+            {
+                if (isDirectional)
+                {
+                    if (isAirborne)
+                    {
+
+                    }
+                    else
+                    {
+
+                    }
+                }
+                else
+                {
+                    if (isAirborne)
+                    {
+
+                    }
+                    else
+                    {
+
+                    }
+                }
+            }
+            else
+            {
+                if (isDirectional)
+                {
+                    if (isAirborne)
+                    {
+
+                    }
+                    else
+                    {
+
+                    }
+                }
+                else
+                {
+                    if (isAirborne)
+                    {
+
+                    }
+                    else
+                    {
+                        Attack(5, 2, 18, 1, .5f, 4, 12, new List<string> { "mid", "light", "punch" }, 0);
+                    }
+                }
+            }
+        }
+
     }
     //attack using info. startup is time until attacking, hitend is when attack ends, ending is when move ends. Ties into endlag.
     //lens are range, damage is obvious, stun is amount of hitstun applied, attackTypes are also important
-    void Attack(float startup, float hitend, float ending, int xlen, int ylen, int damage, float stun, List<string> attackTypes)
+    IEnumerator Attack(float startup, float hittime, float ending, float xlen, float ylen, int damage, float stun, List<string> attackTypes, float angle)
     {
+        bool hasHit = false;
+        endlag = ending;
+        while (endlag > 0)
+        {
+            if (endlag <= ending - startup && endlag > ending - startup - hittime && !hasHit) { 
+                Collider2D enemyHit = Physics2D.OverlapBox(new Vector2(transform.position.x + xlen * .5f, transform.position.y), new Vector2(xlen, ylen), 0, enemies);
+                if (enemyHit != null)
+                {
+                    canCancel = true;
+                    enemyHit.gameObject.GetComponent<Player2>().TakeDamage(damage, stun, angle, attackTypes);
+                    
+                    hasHit = true;
+                }
+            }
+            yield return null;
+        }
+        canCancel = false;
+        
     }
     //the damage is taken. applies damage, stun, and attack Types. Ties into hitstun.
-    void TakeDamage(int damage, float stun, List<string> attackTypes)
+    public void TakeDamage(int damage, float stun, float angle, List<string> attackTypes)
     {
-        endlag = 0.0f;
-        hitstun = stun;
-        health -= damage;
+        if (attackTypes[0].Equals("mid") && canBlockMid || attackTypes[0].Equals("low") && canBlockLow || attackTypes[0].Equals("high") && canBlockHigh)
+        {
+            Block(damage, stun, attackTypes);
+        }
+        else
+        {
+            endlag = 0.0f;
+            hitstun = stun;
+            health -= damage;
+            if (angle != 0)
+            {
+
+            }
+        }
     }
     //the attack is blocked, applies reduced damage, stun, and attack types. 
     void Block(int damage, float stun, List<string> attackTypes)
     {
-
+        hitstun = stun - 3;
+        health -= damage/4;
     }
 
     void OnCollisionEnter2D(Collision2D col)

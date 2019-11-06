@@ -65,7 +65,6 @@ C:\Users\micpa\Documents\FLOW\Temp\bin\Debug\UnityEditor.VR.xml
 C:\Users\micpa\Documents\FLOW\Temp\bin\Debug\UnityEditor.iOS.Extensions.Xcode.xml
 C:\Users\micpa\Documents\FLOW\obj\Debug\Assembly-CSharp.dll
 C:\Users\micpa\Documents\FLOW\obj\Debug\Assembly-CSharp.pdb
-C:\Users\Owner\Documents\FLOW\obj\Debug\Assembly-CSharp.csprojResolveAssemblyReference.cache
 C:\Users\Owner\Documents\FLOW\obj\Debug\Assembly-CSharp.dll
 C:\Users\Owner\Documents\FLOW\Temp\bin\Debug\Assembly-CSharp.dll
 C:\Users\Owner\Documents\FLOW\Temp\bin\Debug\Assembly-CSharp.pdb
@@ -132,3 +131,5 @@ C:\Users\Owner\Documents\FLOW\Temp\bin\Debug\UnityEngine.SpatialTracking.xml
 C:\Users\Owner\Documents\FLOW\Temp\bin\Debug\UnityEditor.VR.xml
 C:\Users\Owner\Documents\FLOW\Temp\bin\Debug\UnityEditor.iOS.Extensions.Xcode.xml
 C:\Users\Owner\Documents\FLOW\obj\Debug\Assembly-CSharp.pdb
+C:\Users\Owner\Documents\FLOW\obj\Debug\Assembly-CSharp.csprojAssemblyReference.cache
+C:\Users\Owner\Documents\FLOW\obj\Debug\Assembly-CSharp.csproj.CopyComplete

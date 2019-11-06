@@ -327,7 +327,7 @@ public class Player2 : MonoBehaviour {
  	void Attack(float startup, float hitend, float ending, int xlen, int ylen, int damage, float stun, List<string> attackTypes){
 	}
 	//the damage is taken. applies damage, stun, and attack Types. Ties into hitstun.
-	void TakeDamage(int damage, float stun, List<string> attackTypes){
+	public void TakeDamage(int damage, float stun, float angle, List<string> attackTypes){
 		endlag = 0.0f;
 		hitstun = stun;
 		health -= damage;

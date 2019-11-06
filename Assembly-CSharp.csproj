@@ -52,6 +52,7 @@
   </ItemGroup>
   <ItemGroup>
      <Compile Include="Assets\CameraControls.cs" />
+     <Compile Include="Assets\Countdown.cs" />
      <Compile Include="Assets\gameManager.cs" />
      <Compile Include="Assets\PlatformerPlayer.cs" />
      <Compile Include="Assets\Player1.cs" />
