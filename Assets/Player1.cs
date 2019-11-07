@@ -546,16 +546,15 @@ public class Player1 : MonoBehaviour
     //Do the rest later.
 
     //figure out what the attack is. going to be massive as more characters are added. Should probably simplify but I like self destruction
-    //TODO: ADD CROUCHING STUFF
     void AttackChecker(bool isKick, bool isHeavy, bool isDirectional, bool isAirborne, bool isCrouching)
     {
-        if (isKick)
+        if (isAirborne)
         {
             if (isHeavy)
             {
                 if (isDirectional)
                 {
-                    if (isAirborne)
+                    if (isKick)
                     {
 
                     }
@@ -566,7 +565,7 @@ public class Player1 : MonoBehaviour
                 }
                 else
                 {
-                    if (isAirborne)
+                    if (isKick)
                     {
 
                     }
@@ -580,7 +579,7 @@ public class Player1 : MonoBehaviour
             {
                 if (isDirectional)
                 {
-                    if (isAirborne)
+                    if (isKick)
                     {
 
                     }
@@ -591,7 +590,7 @@ public class Player1 : MonoBehaviour
                 }
                 else
                 {
-                    if (isAirborne)
+                    if (isKick)
                     {
 
                     }
@@ -608,24 +607,52 @@ public class Player1 : MonoBehaviour
             {
                 if (isDirectional)
                 {
-                    if (isAirborne)
+                    if (isKick)
                     {
+                        if (isCrouching)
+                        {
 
+                        }
+                        else
+                        {
+
+                        }
                     }
                     else
                     {
+                        if (isCrouching)
+                        {
 
+                        }
+                        else
+                        {
+
+                        }
                     }
                 }
                 else
                 {
-                    if (isAirborne)
+                    if (isKick)
                     {
+                        if (isCrouching)
+                        {
 
+                        }
+                        else
+                        {
+
+                        }
                     }
                     else
                     {
+                        if (isCrouching)
+                        {
 
+                        }
+                        else
+                        {
+
+                        }
                     }
                 }
             }
@@ -633,24 +660,52 @@ public class Player1 : MonoBehaviour
             {
                 if (isDirectional)
                 {
-                    if (isAirborne)
+                    if (isKick)
                     {
+                        if (isCrouching)
+                        {
 
+                        }
+                        else
+                        {
+
+                        }
                     }
                     else
                     {
+                        if (isCrouching)
+                        {
 
+                        }
+                        else
+                        {
+
+                        }
                     }
                 }
                 else
                 {
-                    if (isAirborne)
+                    if (isKick)
                     {
+                        if (isCrouching)
+                        {
 
+                        }
+                        else
+                        {
+
+                        }
                     }
                     else
                     {
-                        Attack(5, 2, 18, 1, .5f, 4, 12, new List<string> { "mid", "light", "punch" }, 0);
+                        if (isCrouching)
+                        {
+
+                        }
+                        else
+                        {
+                            StartCoroutine(Attack(5, 2, 18, 1, .5f, 4, 12, new List<string> { "mid", "light", "punch" }, 0));
+                        }
                     }
                 }
             }
@@ -662,21 +717,32 @@ public class Player1 : MonoBehaviour
     IEnumerator Attack(float startup, float hittime, float ending, float xlen, float ylen, int damage, float stun, List<string> attackTypes, float angle)
     {
         bool hasHit = false;
+        canCancel = false;
         endlag = ending;
+        GameObject visual = Instantiate(visualizer, new Vector3(transform.position.x + xlen * 4, transform.position.y, 0), transform.rotation);
+        visual.SetActive(false);
         while (endlag > 0)
         {
-            if (endlag <= ending - startup && endlag > ending - startup - hittime && !hasHit) { 
-                Collider2D enemyHit = Physics2D.OverlapBox(new Vector2(transform.position.x + xlen * .5f, transform.position.y), new Vector2(xlen, ylen), 0, enemies);
+
+            if (endlag <= ending - startup && endlag > ending - startup - hittime && !hasHit)
+            {
+                Collider2D enemyHit = Physics2D.OverlapBox(new Vector2(transform.position.x + xlen *4, transform.position.y), new Vector2(xlen, ylen), 0, enemies);
+                visual.SetActive(true);
                 if (enemyHit != null)
                 {
+                    Debug.Log("Hit enemy");
+
                     canCancel = true;
                     enemyHit.gameObject.GetComponent<Player2>().TakeDamage(damage, stun, angle, attackTypes);
-                    
+
                     hasHit = true;
                 }
             }
+            else
+                visual.SetActive(false);
             yield return null;
         }
+        Destroy(visual);
         canCancel = false;
         
     }

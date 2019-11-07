@@ -328,6 +328,7 @@ public class Player2 : MonoBehaviour {
 	}
 	//the damage is taken. applies damage, stun, and attack Types. Ties into hitstun.
 	public void TakeDamage(int damage, float stun, float angle, List<string> attackTypes){
+        Debug.Log("Took damage!");
 		endlag = 0.0f;
 		hitstun = stun;
 		health -= damage;

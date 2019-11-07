@@ -219,7 +219,7 @@ GameObject:
   - component: {fileID: 437140986}
   - component: {fileID: 437140985}
   - component: {fileID: 437140984}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: p2
   m_TagString: Player2
   m_Icon: {fileID: 0}
@@ -424,7 +424,7 @@ GameObject:
   - component: {fileID: 858554844}
   - component: {fileID: 858554848}
   - component: {fileID: 858554845}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: p1
   m_TagString: Player1
   m_Icon: {fileID: 0}
@@ -473,6 +473,7 @@ MonoBehaviour:
   canCrawl: 1
   crawlSpeed: 0.2
   crouchScale: 0.4
+  visualizer: {fileID: 1444603795674048, guid: 7764c5a314749d848935152a8adb03dd, type: 2}
 --- !u!212 &858554846
 SpriteRenderer:
   m_ObjectHideFlags: 0
