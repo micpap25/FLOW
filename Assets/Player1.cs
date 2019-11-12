@@ -306,19 +306,19 @@ public class Player1 : MonoBehaviour
                     crouchAdjusted = false;
                     if (canCrawl)
                     {
-                        if (Input.GetKey(KeyCode.A))
+                        if (left)
                             Walk(-crawlSpeed);
-                        if (Input.GetKey(KeyCode.D))
+                        if (right)
                             Walk(crawlSpeed);
                     }
                 }
                 else if (Input.GetKeyDown(KeyCode.W))
                 {
-                    if (Input.GetKey(KeyCode.A))
+                    if (left)
                     {
                         GetComponent<Rigidbody2D>().AddForce(new Vector2(-moveSpeed * jumpSpeed * 150, 250 * jumpSpeed));
                     }
-                    else if (Input.GetKey(KeyCode.D))
+                    else if (right)
                     {
                         GetComponent<Rigidbody2D>().AddForce(new Vector2(moveSpeed * jumpSpeed * 150, 250 * jumpSpeed));
                     }
@@ -344,24 +344,24 @@ public class Player1 : MonoBehaviour
             {
                 if (Input.GetKey(KeyCode.S))
                 {
-                    if (Input.GetKeyDown(KeyCode.U))
+                    if (Input.GetKeyDown(KeyCode.T))
                         AttackChecker(false, false, true, true, false);
-                    if (Input.GetKeyDown(KeyCode.I))
+                    if (Input.GetKeyDown(KeyCode.Y))
                         AttackChecker(false, true, true, true, false);
-                    if (Input.GetKeyDown(KeyCode.J))
+                    if (Input.GetKeyDown(KeyCode.G))
                         AttackChecker(true, false, true, true, false);
-                    if (Input.GetKeyDown(KeyCode.K))
+                    if (Input.GetKeyDown(KeyCode.H))
                         AttackChecker(true, true, true, true, false);
                 }
                 else
                 {
-                    if (Input.GetKeyDown(KeyCode.U))
+                    if (Input.GetKeyDown(KeyCode.T))
                         AttackChecker(false, false, false, true, false);
-                    if (Input.GetKeyDown(KeyCode.I))
+                    if (Input.GetKeyDown(KeyCode.Y))
                         AttackChecker(false, true, false, true, false);
-                    if (Input.GetKeyDown(KeyCode.J))
+                    if (Input.GetKeyDown(KeyCode.G))
                         AttackChecker(true, false, false, true, false);
-                    if (Input.GetKeyDown(KeyCode.K))
+                    if (Input.GetKeyDown(KeyCode.H))
                         AttackChecker(true, true, false, true, false);
                 }
             }
@@ -369,46 +369,46 @@ public class Player1 : MonoBehaviour
             {
                 if (left && facing.Equals("left") || right && facing.Equals("right") && Input.GetKey(KeyCode.S))
                 {
-                    if (Input.GetKeyDown(KeyCode.U))
+                    if (Input.GetKeyDown(KeyCode.T))
                         AttackChecker(false, false, true, false, true);
-                    if (Input.GetKeyDown(KeyCode.I))
+                    if (Input.GetKeyDown(KeyCode.Y))
                         AttackChecker(false, true, true, false, true);
-                    if (Input.GetKeyDown(KeyCode.J))
+                    if (Input.GetKeyDown(KeyCode.G))
                         AttackChecker(true, false, true, false, true);
-                    if (Input.GetKeyDown(KeyCode.K))
+                    if (Input.GetKeyDown(KeyCode.H))
                         AttackChecker(true, true, true, false, true);
                 }
                 else if (left && facing.Equals("left") || right && facing.Equals("right"))
                 {
-                    if (Input.GetKeyDown(KeyCode.U))
+                    if (Input.GetKeyDown(KeyCode.T))
                         AttackChecker(false, false, true, false, false);
-                    if (Input.GetKeyDown(KeyCode.I))
+                    if (Input.GetKeyDown(KeyCode.Y))
                         AttackChecker(false, true, true, false, false);
-                    if (Input.GetKeyDown(KeyCode.J))
+                    if (Input.GetKeyDown(KeyCode.G))
                         AttackChecker(true, false, true, false, false);
-                    if (Input.GetKeyDown(KeyCode.K))
+                    if (Input.GetKeyDown(KeyCode.H))
                         AttackChecker(true, true, true, false, false);
                 }
                 else if (Input.GetKey(KeyCode.S))
                 {
-                    if (Input.GetKeyDown(KeyCode.U))
+                    if (Input.GetKeyDown(KeyCode.T))
                         AttackChecker(false, false, true, false, true);
-                    if (Input.GetKeyDown(KeyCode.I))
+                    if (Input.GetKeyDown(KeyCode.Y))
                         AttackChecker(false, true, true, false, true);
-                    if (Input.GetKeyDown(KeyCode.J))
+                    if (Input.GetKeyDown(KeyCode.G))
                         AttackChecker(true, false, true, false, true);
-                    if (Input.GetKeyDown(KeyCode.K))
+                    if (Input.GetKeyDown(KeyCode.H))
                         AttackChecker(true, true, true, false, true);
                 }
                 else
                 {
-                    if (Input.GetKeyDown(KeyCode.U))
+                    if (Input.GetKeyDown(KeyCode.T))
                         AttackChecker(false, false, false, false, false);
-                    if (Input.GetKeyDown(KeyCode.I))
+                    if (Input.GetKeyDown(KeyCode.Y))
                         AttackChecker(false, true, false, false, false);
-                    if (Input.GetKeyDown(KeyCode.J))
+                    if (Input.GetKeyDown(KeyCode.G))
                         AttackChecker(true, false, false, false, false);
-                    if (Input.GetKeyDown(KeyCode.K))
+                    if (Input.GetKeyDown(KeyCode.H))
                         AttackChecker(true, true, false, false, false);
                 }
             }
@@ -421,11 +421,11 @@ public class Player1 : MonoBehaviour
         {
             if (Input.GetKeyDown(KeyCode.W))
             {
-                if (Input.GetKey(KeyCode.A))
+                if (left)
                 {
                     GetComponent<Rigidbody2D>().AddForce(new Vector2(-moveSpeed * jumpSpeed * 150, 250 * jumpSpeed));
                 }
-                else if (Input.GetKey(KeyCode.D))
+                else if (right)
                 {
                     GetComponent<Rigidbody2D>().AddForce(new Vector2(moveSpeed * jumpSpeed * 150, 250 * jumpSpeed));
                 }
@@ -434,28 +434,29 @@ public class Player1 : MonoBehaviour
                     GetComponent<Rigidbody2D>().AddForce(new Vector2(0, jumpSpeed * 250));
                 }
             }
+
             if (isAirborne)
             {
                 if (Input.GetKey(KeyCode.S))
                 {
-                    if (Input.GetKeyDown(KeyCode.U))
+                    if (Input.GetKeyDown(KeyCode.T))
                         AttackChecker(false, false, true, true, false);
-                    if (Input.GetKeyDown(KeyCode.I))
+                    if (Input.GetKeyDown(KeyCode.Y))
                         AttackChecker(false, true, true, true, false);
-                    if (Input.GetKeyDown(KeyCode.J))
+                    if (Input.GetKeyDown(KeyCode.G))
                         AttackChecker(true, false, true, true, false);
-                    if (Input.GetKeyDown(KeyCode.K))
+                    if (Input.GetKeyDown(KeyCode.H))
                         AttackChecker(true, true, true, true, false);
                 }
                 else
                 {
-                    if (Input.GetKeyDown(KeyCode.U))
+                    if (Input.GetKeyDown(KeyCode.T))
                         AttackChecker(false, false, false, true, false);
-                    if (Input.GetKeyDown(KeyCode.I))
+                    if (Input.GetKeyDown(KeyCode.Y))
                         AttackChecker(false, true, false, true, false);
-                    if (Input.GetKeyDown(KeyCode.J))
+                    if (Input.GetKeyDown(KeyCode.G))
                         AttackChecker(true, false, false, true, false);
-                    if (Input.GetKeyDown(KeyCode.K))
+                    if (Input.GetKeyDown(KeyCode.H))
                         AttackChecker(true, true, false, true, false);
                 }
             }
@@ -463,46 +464,46 @@ public class Player1 : MonoBehaviour
             {
                 if (left && facing.Equals("left") || right && facing.Equals("right") && Input.GetKey(KeyCode.S))
                 {
-                    if (Input.GetKeyDown(KeyCode.U))
+                    if (Input.GetKeyDown(KeyCode.T))
                         AttackChecker(false, false, true, false, true);
-                    if (Input.GetKeyDown(KeyCode.I))
+                    if (Input.GetKeyDown(KeyCode.Y))
                         AttackChecker(false, true, true, false, true);
-                    if (Input.GetKeyDown(KeyCode.J))
+                    if (Input.GetKeyDown(KeyCode.G))
                         AttackChecker(true, false, true, false, true);
-                    if (Input.GetKeyDown(KeyCode.K))
+                    if (Input.GetKeyDown(KeyCode.H))
                         AttackChecker(true, true, true, false, true);
                 }
                 else if (left && facing.Equals("left") || right && facing.Equals("right"))
                 {
-                    if (Input.GetKeyDown(KeyCode.U))
-                        AttackChecker(false, false, true, false,false);
-                    if (Input.GetKeyDown(KeyCode.I))
+                    if (Input.GetKeyDown(KeyCode.T))
+                        AttackChecker(false, false, true, false, false);
+                    if (Input.GetKeyDown(KeyCode.Y))
                         AttackChecker(false, true, true, false, false);
-                    if (Input.GetKeyDown(KeyCode.J))
+                    if (Input.GetKeyDown(KeyCode.G))
                         AttackChecker(true, false, true, false, false);
-                    if (Input.GetKeyDown(KeyCode.K))
+                    if (Input.GetKeyDown(KeyCode.H))
                         AttackChecker(true, true, true, false, false);
                 }
                 else if (Input.GetKey(KeyCode.S))
                 {
-                    if (Input.GetKeyDown(KeyCode.U))
+                    if (Input.GetKeyDown(KeyCode.T))
                         AttackChecker(false, false, true, false, true);
-                    if (Input.GetKeyDown(KeyCode.I))
+                    if (Input.GetKeyDown(KeyCode.Y))
                         AttackChecker(false, true, true, false, true);
-                    if (Input.GetKeyDown(KeyCode.J))
+                    if (Input.GetKeyDown(KeyCode.G))
                         AttackChecker(true, false, true, false, true);
-                    if (Input.GetKeyDown(KeyCode.K))
+                    if (Input.GetKeyDown(KeyCode.H))
                         AttackChecker(true, true, true, false, true);
                 }
-                else 
+                else
                 {
-                    if (Input.GetKeyDown(KeyCode.U))
+                    if (Input.GetKeyDown(KeyCode.T))
                         AttackChecker(false, false, false, false, false);
-                    if (Input.GetKeyDown(KeyCode.I))
+                    if (Input.GetKeyDown(KeyCode.Y))
                         AttackChecker(false, true, false, false, false);
-                    if (Input.GetKeyDown(KeyCode.J))
+                    if (Input.GetKeyDown(KeyCode.G))
                         AttackChecker(true, false, false, false, false);
-                    if (Input.GetKeyDown(KeyCode.K))
+                    if (Input.GetKeyDown(KeyCode.H))
                         AttackChecker(true, true, false, false, false);
                 }
             }
