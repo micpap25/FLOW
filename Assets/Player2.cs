@@ -762,6 +762,28 @@ public class Player2 : MonoBehaviour
             {
 
             }
+            else
+            {
+                if (attackTypes[attackTypes.Count - 1].Equals("light"))
+                {
+                    if (facing.Equals("left"))
+                    {
+                        transform.position = transform.position + new Vector3(1, 0, 0);
+                    }
+                    else
+                    {
+                        transform.position = transform.position - new Vector3(1, 0, 0);
+                    }
+                }
+                else if (attackTypes[attackTypes.Count - 1].Equals("medium"))
+                {
+
+                }
+                else
+                {
+
+                }
+            }
         }
     }
     //the attack is blocked, applies reduced damage, stun, and attack types. 

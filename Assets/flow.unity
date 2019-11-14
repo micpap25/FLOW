@@ -248,6 +248,7 @@ MonoBehaviour:
   canCrawl: 1
   crawlSpeed: 0.3
   crouchScale: 0.5
+  visualizer: {fileID: 0}
 --- !u!61 &437140985
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -465,14 +466,20 @@ MonoBehaviour:
   playerName: 
   health: 100
   moveSpeed: 0.3
-  dashSpeed: 0.6
+  dashSpeed: 0.7
   jumpSpeed: 20
   facing: 
-  startInputRefreshTime: 10
+  startInputRefreshTime: 20
   startDashTime: 10
   canCrawl: 1
   crawlSpeed: 0.2
   crouchScale: 0.4
+  FrontDashInput: []
+  BackDashInput: []
+  FrontDash: []
+  BackDash: []
+  dashTime: 0
+  inputRefreshTime: 0
   visualizer: {fileID: 1444603795674048, guid: 7764c5a314749d848935152a8adb03dd, type: 2}
 --- !u!212 &858554846
 SpriteRenderer:

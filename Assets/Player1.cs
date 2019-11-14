@@ -29,23 +29,23 @@ public class Player1 : MonoBehaviour
     private float endlag;
     private string keyword;
     private string dashdir;
-    private List<string> FrontDashInput;
-    private List<string> BackDashInput;
+    public List<string> FrontDashInput;
+    public List<string> BackDashInput;
     private List<string> QCFInput;
     private List<string> QCBInput;
     private List<string> DQCFInput;
     private List<string> DQCBInput;
     private List<string> DDInput;
-    private List<string> FrontDash;
-    private List<string> BackDash;
+    public List<string> FrontDash;
+    public  List<string> BackDash;
     private List<string> QCF;
     private List<string> QCB;
     private List<string> DQCF;
     private List<string> DQCB;
     private List<string> DD;
     private List<string> actionsTaken;
-    private float dashTime;
-    private float inputRefreshTime;
+    public float dashTime;
+    public float inputRefreshTime;
     private bool canCancel;
     private bool isCrouching;
     private bool crouchAdjusted;
@@ -93,7 +93,7 @@ public class Player1 : MonoBehaviour
         //list of actions taken. can't  repeat the same action twice in a flow.
         actionsTaken = new List<string> { };
         //set the committment to dashing. maybe merge into endlag?
-        dashTime = 0;
+        dashTime = -1;
         //used to check if a move can cancel into a move/jump. true when the attack hits. false otherwise. Must be combined with checking the move's type. 
         canCancel = false;
         //used to check if the character is crouching. Height is lowered & can't move unless isCrawl is true, then they move at CrawlSpeed.
@@ -172,132 +172,18 @@ public class Player1 : MonoBehaviour
                 gameObject.transform.position = new Vector3(x, 0, 0);
             }
         }
-        if (dashTime == 0)
+
+        if (dashTime == -1)
         {
             dashdir = "none";
         }
-        if (dashTime > 0)
-        {
-            if (facing.Equals("left") && dashdir.Equals("front") || facing.Equals("right") && dashdir.Equals("back"))
-            {
-                if (Input.GetKeyDown(KeyCode.W))
-                {
-                    GetComponent<Rigidbody2D>().AddForce(new Vector2(-moveSpeed * jumpSpeed * 100 * (dashSpeed / moveSpeed), 250 * jumpSpeed));
-                    dashTime = 0;
-                }
-                else
-                    Walk(-dashSpeed);
-            }
-            else
-            {
-                if (Input.GetKeyDown(KeyCode.W))
-                {
-                    GetComponent<Rigidbody2D>().AddForce(new Vector2(moveSpeed * jumpSpeed * 100 * (dashSpeed / moveSpeed), 250 * jumpSpeed));
-                    dashTime = 0;
-                }
-                else
-                    Walk(dashSpeed);
-            }
-            dashTime--;
-        }
 
-        if (Input.GetKeyDown(KeyCode.A))
-        {
-            if (facing == "left")
-                keyword = "front";
-            else
-                keyword = "back";
-            if (BackDash[0].Equals(keyword))
-            {
-                BackDash.RemoveAt(0);
-                if (BackDash.Count == 0)
-                {
-                    dashTime = startDashTime;
-                    dashdir = "back";
-                    inputRefreshTime = 0;
-                    //facing == 
-                    BackDash = new List<string>(BackDashInput);
-                }
-                else
-                    inputRefreshTime = 500;
-            }
-            else
-            {
-                BackDash = new List<string>(BackDashInput);
-                inputRefreshTime = 0;
-            }
-
-            if (FrontDash[0].Equals(keyword))
-            {
-                FrontDash.RemoveAt(0);
-                if (FrontDash.Count == 0)
-                {
-                    dashTime = startDashTime;
-                    dashdir = "front";
-                    inputRefreshTime = 0;
-                    FrontDash = new List<string>(FrontDashInput);
-                }
-                else
-                    inputRefreshTime = 500;
-            }
-            else
-            {
-                FrontDash = new List<string>(FrontDashInput);
-                inputRefreshTime = 0;
-            }
-        }
-
-        if (Input.GetKeyDown(KeyCode.D))
-        {
-
-            //setting the keyword
-            if (facing == "left")
-                keyword = "back";
-            else
-                keyword = "front";
-            if (BackDash[0].Equals(keyword))
-            {
-                BackDash.RemoveAt(0);
-                if (BackDash.Count == 0)
-                {
-                    dashTime = startDashTime;
-                    inputRefreshTime = 0;
-                    dashdir = "back";
-                    BackDash = new List<string>(BackDashInput);
-                }
-                else
-                    inputRefreshTime = 500;
-            }
-            else
-            {
-                BackDash = new List<string>(BackDashInput);
-                inputRefreshTime = 0;
-            }
-            if (FrontDash[0].Equals(keyword))
-            {
-                FrontDash.RemoveAt(0);
-                if (FrontDash.Count == 0)
-                {
-                    dashTime = startDashTime;
-                    inputRefreshTime = 0;
-                    dashdir = "front";
-                    FrontDash = new List<string>(FrontDashInput);
-                }
-                else
-                    inputRefreshTime = 500;
-            }
-            else
-            {
-                FrontDash = new List<string>(FrontDashInput);
-                inputRefreshTime = 0;
-            }
-        }
 
         //check for actions that can only be taken in neutral (walking, dashing, blocking)
-        else if (hitstun == 0 && endlag == 0)
+        if (hitstun == 0 && endlag == 0)
         {
 
-            if (!isAirborne)
+            if (!isAirborne && dashTime <= 0)
             {
                 if (Input.GetKey(KeyCode.S))
                 {
@@ -339,6 +225,137 @@ public class Player1 : MonoBehaviour
                 }
             }
 
+            if (dashTime > 0)
+            {
+                if (facing.Equals("left") && dashdir.Equals("front") || facing.Equals("right") && dashdir.Equals("back"))
+                {
+                    if (Input.GetKeyDown(KeyCode.W))
+                    {
+                        GetComponent<Rigidbody2D>().AddForce(new Vector2(-moveSpeed * jumpSpeed * 100 * (dashSpeed / moveSpeed), 250 * jumpSpeed));
+                        dashTime = 0;
+                    }
+                    else
+                        Walk(-dashSpeed);
+                }
+
+                else
+                {
+                    if (Input.GetKeyDown(KeyCode.W))
+                    {
+                        GetComponent<Rigidbody2D>().AddForce(new Vector2(moveSpeed * jumpSpeed * 100 * (dashSpeed / moveSpeed), 250 * jumpSpeed));
+                        dashTime = 0;
+                    }
+                    else
+                        Walk(dashSpeed);
+                }
+
+                dashTime--;
+            }
+
+            if (Input.GetKeyDown(KeyCode.A))
+            {
+                if (facing == "left")
+                    keyword = "front";
+                else
+                    keyword = "back";
+                if (BackDash[0].Equals(keyword))
+                {
+                    Debug.Log("Entered keyword area");
+                    BackDash.RemoveAt(0);
+                    if (BackDash.Count == 0)
+                    {
+                        Debug.Log("Entered Count area");
+                        dashTime = startDashTime;
+                        dashdir = "back";
+                        inputRefreshTime = 0;
+                        //facing == 
+                        BackDash = new List<string>(BackDashInput);
+                    }
+                    else
+                    {
+                        inputRefreshTime = startInputRefreshTime;
+                        Debug.Log("Set refresh time");
+                    }
+                }
+                else
+                {
+                    if (!BackDash.Equals(BackDashInput))
+                    {
+                        BackDash = new List<string>(BackDashInput);
+                    }
+                }
+
+                if (FrontDash[0].Equals(keyword))
+                {
+                    FrontDash.RemoveAt(0);
+                    if (FrontDash.Count == 0)
+                    {
+                        dashTime = startDashTime;
+                        dashdir = "front";
+                        inputRefreshTime = 0;
+                        FrontDash = new List<string>(FrontDashInput);
+                    }
+                    else
+                        inputRefreshTime = startInputRefreshTime;
+                }
+                else
+                {
+                    if (!FrontDash.Equals(FrontDashInput))
+                    {
+                        FrontDash = new List<string>(FrontDashInput);
+                    }
+                }
+            }
+
+            if (Input.GetKeyDown(KeyCode.D))
+            {
+
+                //setting the keyword
+                if (facing == "left")
+                    keyword = "back";
+                else
+                    keyword = "front";
+                if (BackDash[0].Equals(keyword))
+                {
+                    BackDash.RemoveAt(0);
+                    if (BackDash.Count == 0)
+                    {
+                        dashTime = startDashTime;
+                        inputRefreshTime = 0;
+                        dashdir = "back";
+                        BackDash = new List<string>(BackDashInput);
+                    }
+                    else
+                        inputRefreshTime = startInputRefreshTime;
+                }
+                else
+                {
+                    if (!BackDash.Equals(BackDashInput))
+                    {
+                        BackDash = new List<string>(BackDashInput);
+                    }
+                }
+                if (FrontDash[0].Equals(keyword))
+                {
+                    FrontDash.RemoveAt(0);
+                    if (FrontDash.Count == 0)
+                    {
+                        dashTime = startDashTime;
+                        inputRefreshTime = 0;
+                        dashdir = "front";
+                        FrontDash = new List<string>(FrontDashInput);
+                    }
+                    else
+                        inputRefreshTime = startInputRefreshTime;
+                }
+                else
+                {
+                    if (!FrontDash.Equals(FrontDashInput))
+                    {
+                        FrontDash = new List<string>(FrontDashInput);
+                    }
+                }
+            }
 
             if (isAirborne)
             {
@@ -419,7 +436,8 @@ public class Player1 : MonoBehaviour
         //check for actions that can be taken in either neutral or mid-attack(jumping, attacking, inputs for specials, supers)
         else if (hitstun == 0 && canCancel)
         {
-            if (Input.GetKeyDown(KeyCode.W))
+
+            if (Input.GetKeyDown(KeyCode.W) && !isAirborne && dashTime <= 0)
             {
                 if (left)
                 {
@@ -434,6 +452,139 @@ public class Player1 : MonoBehaviour
                     GetComponent<Rigidbody2D>().AddForce(new Vector2(0, jumpSpeed * 250));
                 }
             }
+
+            if (dashTime == -1)
+            {
+                dashdir = "none";
+            }
+            if (dashTime > 0)
+            {
+                if (facing.Equals("left") && dashdir.Equals("front") || facing.Equals("right") && dashdir.Equals("back"))
+                {
+                    if (Input.GetKeyDown(KeyCode.W))
+                    {
+                        GetComponent<Rigidbody2D>().AddForce(new Vector2(-moveSpeed * jumpSpeed * 100 * (dashSpeed / moveSpeed), 250 * jumpSpeed));
+                        dashTime = 0;
+                    }
+                    else
+                        Walk(-dashSpeed);
+                }
+                else
+                {
+                    if (Input.GetKeyDown(KeyCode.W))
+                    {
+                        GetComponent<Rigidbody2D>().AddForce(new Vector2(moveSpeed * jumpSpeed * 100 * (dashSpeed / moveSpeed), 250 * jumpSpeed));
+                        dashTime = 0;
+                    }
+                    else
+                        Walk(dashSpeed);
+                }
+                dashTime--;
+            }
+
+
+            if (Input.GetKeyDown(KeyCode.A))
+            {
+                if (facing == "left")
+                    keyword = "front";
+                else
+                    keyword = "back";
+                if (BackDash[0].Equals(keyword))
+                {
+                    BackDash.RemoveAt(0);
+                    if (BackDash.Count == 0)
+                    {
+                        dashTime = startDashTime;
+                        dashdir = "back";
+                        inputRefreshTime = 0;
+                        //facing == 
+                        BackDash = new List<string>(BackDashInput);
+                    }
+                    else
+                    {
+                        inputRefreshTime = startInputRefreshTime;
+                    }
+                }
+                else
+                {
+                    if (!BackDash.Equals(BackDashInput))
+                    {
+                        BackDash = new List<string>(BackDashInput);
+                    }
+                }
+
+                if (FrontDash[0].Equals(keyword))
+                {
+                    FrontDash.RemoveAt(0);
+                    if (FrontDash.Count == 0)
+                    {
+                        dashTime = startDashTime;
+                        dashdir = "front";
+                        inputRefreshTime = 0;
+                        FrontDash = new List<string>(FrontDashInput);
+                    }
+                    else
+                        inputRefreshTime = startInputRefreshTime;
+                }
+                else
+                {
+                    if (!FrontDash.Equals(FrontDashInput))
+                    {
+                        FrontDash = new List<string>(FrontDashInput);
+                    }
+                }
+            }
+
+            if (Input.GetKeyDown(KeyCode.D))
+            {
+
+                //setting the keyword
+                if (facing == "left")
+                    keyword = "back";
+                else
+                    keyword = "front";
+                if (BackDash[0].Equals(keyword))
+                {
+                    BackDash.RemoveAt(0);
+                    if (BackDash.Count == 0)
+                    {
+                        dashTime = startDashTime;
+                        inputRefreshTime = 0;
+                        dashdir = "back";
+                        BackDash = new List<string>(BackDashInput);
+                    }
+                    else
+                        inputRefreshTime = startInputRefreshTime;
+                }
+                else
+                {
+                    if (!BackDash.Equals(BackDashInput))
+                    {
+                        BackDash = new List<string>(BackDashInput);
+                    }
+                }
+                if (FrontDash[0].Equals(keyword))
+                {
+                    FrontDash.RemoveAt(0);
+                    if (FrontDash.Count == 0)
+                    {
+                        dashTime = startDashTime;
+                        inputRefreshTime = 0;
+                        dashdir = "front";
+                        FrontDash = new List<string>(FrontDashInput);
+                    }
+                    else
+                        inputRefreshTime = startInputRefreshTime;
+                }
+                else
+                {
+                    if (!FrontDash.Equals(FrontDashInput))
+                    {
+                        FrontDash = new List<string>(FrontDashInput);
+                    }
+                }
+            }
+
 
             if (isAirborne)
             {
@@ -705,7 +856,7 @@ public class Player1 : MonoBehaviour
                         }
                         else
                         {
-                            StartCoroutine(Attack(5, 2, 18, 1, .5f, 4, 12, new List<string> { "mid", "light", "punch" }, 0));
+                            StartCoroutine(Attack(5, 2, 18, 1, .5f, 4, 12, new List<string> { "mid", "punch", "light" }, 0));
                         }
                     }
                 }
@@ -720,14 +871,16 @@ public class Player1 : MonoBehaviour
         bool hasHit = false;
         canCancel = false;
         endlag = ending;
-        GameObject visual = Instantiate(visualizer, new Vector3(transform.position.x + xlen * 4, transform.position.y, 0), transform.rotation);
+        dashTime = -1;
+        int facingAdjust = facing.Equals("right") ? 1 : -1;
+        GameObject visual = Instantiate(visualizer, new Vector3(transform.position.x + xlen * 4 * facingAdjust, transform.position.y, 0), transform.rotation);
         visual.SetActive(false);
         while (endlag > 0)
         {
 
             if (endlag <= ending - startup && endlag > ending - startup - hittime && !hasHit)
             {
-                Collider2D enemyHit = Physics2D.OverlapBox(new Vector2(transform.position.x + xlen *4, transform.position.y), new Vector2(xlen, ylen), 0, enemies);
+                Collider2D enemyHit = Physics2D.OverlapBox(new Vector2(transform.position.x + xlen * 4 * facingAdjust, transform.position.y), new Vector2(xlen, ylen), 0, enemies);
                 visual.SetActive(true);
                 if (enemyHit != null)
                 {
