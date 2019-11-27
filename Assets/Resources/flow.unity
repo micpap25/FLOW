@@ -319,6 +319,7 @@ MonoBehaviour:
   moveSpeed: 0.3
   dashSpeed: 0.7
   jumpSpeed: 20
+  jumpHeight: 200
   facing: 
   startInputRefreshTime: 10
   startDashTime: 10
@@ -332,12 +333,10 @@ MonoBehaviour:
   BackDash: []
   dashTime: 0
   inputRefreshTime: 0
-  comboing: 0
-  neutral: {fileID: 21300000, guid: 5fec50e135e3256479a541b119035e0f, type: 3}
-  attacking: {fileID: 21300000, guid: c23d20679cc70924c9cb620f2f7576f4, type: 3}
-  stun: {fileID: 21300000, guid: 81d160ab02d35db459a7f51529891e67, type: 3}
-  block: {fileID: 0}
+  isCrouching: 0
   visualizer: {fileID: 1444603795674048, guid: 7764c5a314749d848935152a8adb03dd, type: 2}
+  left: 0
+  right: 0
 --- !u!61 &437140985
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -575,6 +574,7 @@ MonoBehaviour:
   moveSpeed: 0.3
   dashSpeed: 0.7
   jumpSpeed: 20
+  jumpHeight: 150
   facing: 
   startInputRefreshTime: 20
   startDashTime: 10
@@ -586,13 +586,7 @@ MonoBehaviour:
   BackDashInput: []
   FrontDash: []
   BackDash: []
-  dashTime: 0
-  inputRefreshTime: 0
-  comboing: 0
-  neutral: {fileID: 21300000, guid: d84c4da3070ba67479d6516b31a83b92, type: 3}
-  attacking: {fileID: 21300000, guid: 9d2d939ab4ebb0948b8c466b26fe4135, type: 3}
-  stun: {fileID: 21300000, guid: 233f8071491c01549a65717ea262a68d, type: 3}
-  block: {fileID: 21300000, guid: 66d59f2f5772b0642ac27a8aa82db78b, type: 3}
+  movementsTaken: []
   visualizer: {fileID: 1444603795674048, guid: 7764c5a314749d848935152a8adb03dd, type: 2}
 --- !u!212 &858554846
 SpriteRenderer:

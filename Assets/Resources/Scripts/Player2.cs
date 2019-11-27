@@ -1,7 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-public class Player1 : MonoBehaviour
+public class Player2 : MonoBehaviour
 {
     //GOALS FOR FIRST BUILD:
     //BASIC MOVEMENT, JUMPING, DASHING, ETC. AND METERS!
@@ -19,6 +19,7 @@ public class Player1 : MonoBehaviour
     public float moveSpeed;
     public float dashSpeed;
     public float jumpSpeed;
+    public float jumpHeight;
     public string facing;
     public float startInputRefreshTime;
     public float startDashTime;
@@ -37,38 +38,39 @@ public class Player1 : MonoBehaviour
     private List<string> DQCBInput;
     private List<string> DDInput;
     public List<string> FrontDash;
-    public  List<string> BackDash;
+    public List<string> BackDash;
     private List<string> QCF;
     private List<string> QCB;
     private List<string> DQCF;
     private List<string> DQCB;
     private List<string> DD;
-    private List<string> actionsTaken;
+    private List<List<bool>> actionsTaken;
     public float dashTime;
     public float inputRefreshTime;
     private bool canCancel;
-    private bool isCrouching;
+    public bool isCrouching;
     private bool crouchAdjusted;
     private bool canBlockHigh;
     private bool canBlockMid;
     private bool canBlockLow;
     private bool isAirborne;
-    public bool comboing;
     private string mostRecentAttackType;
     private bool blockStunning;
     private BoxCollider2D boxcol;
     private Animator anim;
     private SpriteRenderer spriteRenderer;
-    public Sprite neutral;
-    public Sprite attacking;
-    public Sprite stun;
-    public Sprite block;
+    private Sprite[] spriteList;
+    private Sprite neutral;
+    private Sprite attacking;
+    private Sprite stun;
+    private Sprite block;
     private GameObject opponent;
     private Rigidbody2D rb;
-    private Camera camera;
     private float oldsize;
     private LayerMask enemies;
     public GameObject visualizer;
+    public bool left;
+    public bool right;
 
     // Use this for initialization
     void Start()
@@ -96,7 +98,7 @@ public class Player1 : MonoBehaviour
         DD = new List<string>(DDInput);
         keyword = "none";
         //list of actions taken. can't  repeat the same action twice in a flow.
-        actionsTaken = new List<string> { };
+        actionsTaken = new List<List<bool>> { };
         //set the committment to dashing. maybe merge into endlag?
         dashTime = -1;
         //used to check if a move can cancel into a move/jump. true when the attack hits. false otherwise. Must be combined with checking the move's type. 
@@ -119,19 +121,36 @@ public class Player1 : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         spriteRenderer = GetComponent<SpriteRenderer>();
         anim = GetComponent<Animator>();
-        camera = Camera.main;
-        opponent = GameObject.FindGameObjectWithTag("Player2");
-        enemies = LayerMask.GetMask("Player2");
+        opponent = GameObject.FindGameObjectWithTag("Player1");
+        enemies = LayerMask.GetMask("Player1");
+
+        spriteList = new Sprite[] {
+        Resources.Load<Sprite>("Sprites/NeutralTest"),
+        Resources.Load<Sprite>("Sprites/NeutralTest2"),
+        Resources.Load<Sprite>("Sprites/AttackTest"),
+        Resources.Load<Sprite>("Sprites/AttackTest2"),
+        Resources.Load<Sprite>("Sprites/HitTest"),
+        Resources.Load<Sprite>("Sprites/HitTest2"),
+        Resources.Load<Sprite>("Sprites/BlockTest"),
+        Resources.Load<Sprite>("Sprites/BlockTest2")};
+        neutral = spriteList[1];
+        attacking = spriteList[3];
+        stun = spriteList[5];
+        block = spriteList[7];
 
     }
 
     // Update is called once per frame
     void FixedUpdate()
     {
-        bool right = Input.GetKey(KeyCode.D);
-        bool left = Input.GetKey(KeyCode.A);
+        right = Input.GetKey(KeyCode.RightArrow);
+        left = Input.GetKey(KeyCode.LeftArrow);
         //set important stuff first
-        if (!Input.GetKey(KeyCode.S))
+        if (endlag == 0)
+        {
+            actionsTaken = new List<List<bool>> { };
+        }
+        if (!Input.GetKey(KeyCode.DownArrow))
         {
             isCrouching = false;
             crouchAdjusted = false;
@@ -139,9 +158,21 @@ public class Player1 : MonoBehaviour
         if (health <= 0)
             Destroy(gameObject);
         if (opponent.transform.position.x < transform.position.x)
+        {
             facing = "left";
+            neutral = spriteList[1];
+            attacking = spriteList[3];
+            stun = spriteList[5];
+            block = spriteList[7];
+        }
         else
+        {
             facing = "right";
+            neutral = spriteList[0];
+            attacking = spriteList[2];
+            stun = spriteList[4];
+            block = spriteList[6];
+        }
         if (!crouchAdjusted)
         {
             if (isCrouching)
@@ -209,7 +240,7 @@ public class Player1 : MonoBehaviour
 
             if (!isAirborne && dashTime <= 0)
             {
-                if (Input.GetKey(KeyCode.S))
+                if (Input.GetKey(KeyCode.DownArrow))
                 {
                     //Include stuff for inputs  here at some point
                     isCrouching = true;
@@ -222,19 +253,19 @@ public class Player1 : MonoBehaviour
                             Walk(crawlSpeed);
                     }
                 }
-                else if (Input.GetKeyDown(KeyCode.W))
+                else if (Input.GetKeyDown(KeyCode.UpArrow))
                 {
                     if (left)
                     {
-                        GetComponent<Rigidbody2D>().AddForce(new Vector2(-moveSpeed * jumpSpeed * 150, 250 * jumpSpeed));
+                        GetComponent<Rigidbody2D>().AddForce(new Vector2(-moveSpeed * jumpSpeed * 100, jumpHeight * jumpSpeed));
                     }
                     else if (right)
                     {
-                        GetComponent<Rigidbody2D>().AddForce(new Vector2(moveSpeed * jumpSpeed * 150, 250 * jumpSpeed));
+                        GetComponent<Rigidbody2D>().AddForce(new Vector2(moveSpeed * jumpSpeed * 100, jumpHeight * jumpSpeed));
                     }
                     else
                     {
-                        GetComponent<Rigidbody2D>().AddForce(new Vector2(0, jumpSpeed * 250));
+                        GetComponent<Rigidbody2D>().AddForce(new Vector2(0, jumpSpeed * jumpHeight));
                     }
                 }
 
@@ -253,9 +284,9 @@ public class Player1 : MonoBehaviour
             {
                 if (facing.Equals("left") && dashdir.Equals("front") || facing.Equals("right") && dashdir.Equals("back"))
                 {
-                    if (Input.GetKeyDown(KeyCode.W))
+                    if (Input.GetKeyDown(KeyCode.UpArrow))
                     {
-                        GetComponent<Rigidbody2D>().AddForce(new Vector2(-moveSpeed * jumpSpeed * 100 * (dashSpeed / moveSpeed), 250 * jumpSpeed));
+                        GetComponent<Rigidbody2D>().AddForce(new Vector2(-moveSpeed * jumpSpeed * 100 * (dashSpeed / moveSpeed), jumpHeight * jumpSpeed));
                         dashTime = 0;
                     }
                     else
@@ -264,9 +295,9 @@ public class Player1 : MonoBehaviour
 
                 else
                 {
-                    if (Input.GetKeyDown(KeyCode.W))
+                    if (Input.GetKeyDown(KeyCode.UpArrow))
                     {
-                        GetComponent<Rigidbody2D>().AddForce(new Vector2(moveSpeed * jumpSpeed * 100 * (dashSpeed / moveSpeed), 250 * jumpSpeed));
+                        GetComponent<Rigidbody2D>().AddForce(new Vector2(moveSpeed * jumpSpeed * 100 * (dashSpeed / moveSpeed), jumpHeight * jumpSpeed));
                         dashTime = 0;
                     }
                     else
@@ -276,7 +307,7 @@ public class Player1 : MonoBehaviour
                 dashTime--;
             }
 
-            if (Input.GetKeyDown(KeyCode.A))
+            if (Input.GetKeyDown(KeyCode.LeftArrow))
             {
                 if (facing == "left")
                     keyword = "front";
@@ -328,7 +359,7 @@ public class Player1 : MonoBehaviour
                 }
             }
 
-            if (Input.GetKeyDown(KeyCode.D))
+            if (Input.GetKeyDown(KeyCode.RightArrow))
             {
 
                 //setting the keyword
@@ -380,26 +411,26 @@ public class Player1 : MonoBehaviour
 
             if (isAirborne)
             {
-                if (Input.GetKey(KeyCode.S))
+                if (Input.GetKey(KeyCode.DownArrow))
                 {
-                    if (Input.GetKeyDown(KeyCode.T))
+                    if (Input.GetKeyDown(KeyCode.O))
                         AttackChecker(false, false, true, true, false);
-                    if (Input.GetKeyDown(KeyCode.Y))
+                    if (Input.GetKeyDown(KeyCode.P))
                         AttackChecker(false, true, true, true, false);
-                    if (Input.GetKeyDown(KeyCode.G))
+                    if (Input.GetKeyDown(KeyCode.L))
                         AttackChecker(true, false, true, true, false);
-                    if (Input.GetKeyDown(KeyCode.H))
+                    if (Input.GetKeyDown(KeyCode.Semicolon))
                         AttackChecker(true, true, true, true, false);
                 }
                 else
                 {
-                    if (Input.GetKeyDown(KeyCode.T))
+                    if (Input.GetKeyDown(KeyCode.O))
                         AttackChecker(false, false, false, true, false);
-                    if (Input.GetKeyDown(KeyCode.Y))
+                    if (Input.GetKeyDown(KeyCode.P))
                         AttackChecker(false, true, false, true, false);
-                    if (Input.GetKeyDown(KeyCode.G))
+                    if (Input.GetKeyDown(KeyCode.L))
                         AttackChecker(true, false, false, true, false);
-                    if (Input.GetKeyDown(KeyCode.H))
+                    if (Input.GetKeyDown(KeyCode.Semicolon))
                         AttackChecker(true, true, false, true, false);
                 }
             }
@@ -407,50 +438,49 @@ public class Player1 : MonoBehaviour
             {
                 if ((left && facing.Equals("left") || right && facing.Equals("right")) && isCrouching)
                 {
-                    if (Input.GetKeyDown(KeyCode.T))
+                    if (Input.GetKeyDown(KeyCode.O))
                         AttackChecker(false, false, true, false, true);
-                    if (Input.GetKeyDown(KeyCode.Y))
+                    if (Input.GetKeyDown(KeyCode.P))
                         AttackChecker(false, true, true, false, true);
-                    if (Input.GetKeyDown(KeyCode.G))
+                    if (Input.GetKeyDown(KeyCode.L))
                         AttackChecker(true, false, true, false, true);
-                    if (Input.GetKeyDown(KeyCode.H))
+                    if (Input.GetKeyDown(KeyCode.Semicolon))
                         AttackChecker(true, true, true, false, true);
                 }
                 else if (left && facing.Equals("left") || right && facing.Equals("right"))
                 {
-                    if (Input.GetKeyDown(KeyCode.T))
+                    if (Input.GetKeyDown(KeyCode.O))
                         AttackChecker(false, false, true, false, false);
-                    if (Input.GetKeyDown(KeyCode.Y))
+                    if (Input.GetKeyDown(KeyCode.P))
                         AttackChecker(false, true, true, false, false);
-                    if (Input.GetKeyDown(KeyCode.G))
+                    if (Input.GetKeyDown(KeyCode.L))
                         AttackChecker(true, false, true, false, false);
-                    if (Input.GetKeyDown(KeyCode.H))
+                    if (Input.GetKeyDown(KeyCode.Semicolon))
                         AttackChecker(true, true, true, false, false);
                 }
                 else if (isCrouching)
                 {
-                    if (Input.GetKeyDown(KeyCode.T))
+                    if (Input.GetKeyDown(KeyCode.O))
                         AttackChecker(false, false, false, false, true);
-                    if (Input.GetKeyDown(KeyCode.Y))
+                    if (Input.GetKeyDown(KeyCode.P))
                         AttackChecker(false, true, false, false, true);
-                    if (Input.GetKeyDown(KeyCode.G))
+                    if (Input.GetKeyDown(KeyCode.L))
                         AttackChecker(true, false, false, false, true);
-                    if (Input.GetKeyDown(KeyCode.H))
+                    if (Input.GetKeyDown(KeyCode.Semicolon))
                         AttackChecker(true, true, false, false, true);
                 }
                 else
                 {
-                    if (Input.GetKeyDown(KeyCode.T))
+                    if (Input.GetKeyDown(KeyCode.O))
                         AttackChecker(false, false, false, false, false);
-                    if (Input.GetKeyDown(KeyCode.Y))
+                    if (Input.GetKeyDown(KeyCode.P))
                         AttackChecker(false, true, false, false, false);
-                    if (Input.GetKeyDown(KeyCode.G))
+                    if (Input.GetKeyDown(KeyCode.L))
                         AttackChecker(true, false, false, false, false);
-                    if (Input.GetKeyDown(KeyCode.H))
+                    if (Input.GetKeyDown(KeyCode.Semicolon))
                         AttackChecker(true, true, false, false, false);
                 }
             }
-            //TODO: set canblocks here
 
 
         }
@@ -458,19 +488,19 @@ public class Player1 : MonoBehaviour
         else if (hitstun == 0 && canCancel)
         {
 
-            if (Input.GetKeyDown(KeyCode.W) && !isAirborne && dashTime <= 0)
+            if (Input.GetKeyDown(KeyCode.UpArrow) && !isAirborne && dashTime <= 0)
             {
                 if (left)
                 {
-                    GetComponent<Rigidbody2D>().AddForce(new Vector2(-moveSpeed * jumpSpeed * 150, 250 * jumpSpeed));
+                    GetComponent<Rigidbody2D>().AddForce(new Vector2(-moveSpeed * jumpSpeed * 100, jumpHeight * jumpSpeed));
                 }
                 else if (right)
                 {
-                    GetComponent<Rigidbody2D>().AddForce(new Vector2(moveSpeed * jumpSpeed * 150, 250 * jumpSpeed));
+                    GetComponent<Rigidbody2D>().AddForce(new Vector2(moveSpeed * jumpSpeed * 100, jumpHeight * jumpSpeed));
                 }
                 else
                 {
-                    GetComponent<Rigidbody2D>().AddForce(new Vector2(0, jumpSpeed * 250));
+                    GetComponent<Rigidbody2D>().AddForce(new Vector2(0, jumpSpeed * jumpHeight));
                 }
             }
 
@@ -482,9 +512,9 @@ public class Player1 : MonoBehaviour
             {
                 if (facing.Equals("left") && dashdir.Equals("front") || facing.Equals("right") && dashdir.Equals("back"))
                 {
-                    if (Input.GetKeyDown(KeyCode.W))
+                    if (Input.GetKeyDown(KeyCode.UpArrow))
                     {
-                        GetComponent<Rigidbody2D>().AddForce(new Vector2(-moveSpeed * jumpSpeed * 100 * (dashSpeed / moveSpeed), 250 * jumpSpeed));
+                        GetComponent<Rigidbody2D>().AddForce(new Vector2(-moveSpeed * jumpSpeed * 100 * (dashSpeed / moveSpeed), jumpHeight * jumpSpeed));
                         dashTime = 0;
                     }
                     else
@@ -492,9 +522,9 @@ public class Player1 : MonoBehaviour
                 }
                 else
                 {
-                    if (Input.GetKeyDown(KeyCode.W))
+                    if (Input.GetKeyDown(KeyCode.UpArrow))
                     {
-                        GetComponent<Rigidbody2D>().AddForce(new Vector2(moveSpeed * jumpSpeed * 100 * (dashSpeed / moveSpeed), 250 * jumpSpeed));
+                        GetComponent<Rigidbody2D>().AddForce(new Vector2(moveSpeed * jumpSpeed * 100 * (dashSpeed / moveSpeed), jumpHeight * jumpSpeed));
                         dashTime = 0;
                     }
                     else
@@ -504,7 +534,7 @@ public class Player1 : MonoBehaviour
             }
 
 
-            if (Input.GetKeyDown(KeyCode.A))
+            if (Input.GetKeyDown(KeyCode.LeftArrow))
             {
                 if (facing == "left")
                     keyword = "front";
@@ -556,7 +586,7 @@ public class Player1 : MonoBehaviour
                 }
             }
 
-            if (Input.GetKeyDown(KeyCode.D))
+            if (Input.GetKeyDown(KeyCode.RightArrow))
             {
 
                 //setting the keyword
@@ -609,26 +639,26 @@ public class Player1 : MonoBehaviour
 
             if (isAirborne)
             {
-                if (Input.GetKey(KeyCode.S))
+                if (Input.GetKey(KeyCode.DownArrow))
                 {
-                    if (Input.GetKeyDown(KeyCode.T))
+                    if (Input.GetKeyDown(KeyCode.O))
                         AttackChecker(false, false, true, true, false);
-                    if (Input.GetKeyDown(KeyCode.Y))
+                    if (Input.GetKeyDown(KeyCode.P))
                         AttackChecker(false, true, true, true, false);
-                    if (Input.GetKeyDown(KeyCode.G))
+                    if (Input.GetKeyDown(KeyCode.L))
                         AttackChecker(true, false, true, true, false);
-                    if (Input.GetKeyDown(KeyCode.H))
+                    if (Input.GetKeyDown(KeyCode.Semicolon))
                         AttackChecker(true, true, true, true, false);
                 }
                 else
                 {
-                    if (Input.GetKeyDown(KeyCode.T))
+                    if (Input.GetKeyDown(KeyCode.O))
                         AttackChecker(false, false, false, true, false);
-                    if (Input.GetKeyDown(KeyCode.Y))
+                    if (Input.GetKeyDown(KeyCode.P))
                         AttackChecker(false, true, false, true, false);
-                    if (Input.GetKeyDown(KeyCode.G))
+                    if (Input.GetKeyDown(KeyCode.L))
                         AttackChecker(true, false, false, true, false);
-                    if (Input.GetKeyDown(KeyCode.H))
+                    if (Input.GetKeyDown(KeyCode.Semicolon))
                         AttackChecker(true, true, false, true, false);
                 }
             }
@@ -636,46 +666,46 @@ public class Player1 : MonoBehaviour
             {
                 if ((left && facing.Equals("left") || right && facing.Equals("right")) && isCrouching)
                 {
-                    if (Input.GetKeyDown(KeyCode.T))
+                    if (Input.GetKeyDown(KeyCode.O))
                         AttackChecker(false, false, true, false, true);
-                    if (Input.GetKeyDown(KeyCode.Y))
+                    if (Input.GetKeyDown(KeyCode.P))
                         AttackChecker(false, true, true, false, true);
-                    if (Input.GetKeyDown(KeyCode.G))
+                    if (Input.GetKeyDown(KeyCode.L))
                         AttackChecker(true, false, true, false, true);
-                    if (Input.GetKeyDown(KeyCode.H))
+                    if (Input.GetKeyDown(KeyCode.Semicolon))
                         AttackChecker(true, true, true, false, true);
                 }
                 else if (left && facing.Equals("left") || right && facing.Equals("right"))
                 {
-                    if (Input.GetKeyDown(KeyCode.T))
+                    if (Input.GetKeyDown(KeyCode.O))
                         AttackChecker(false, false, true, false, false);
-                    if (Input.GetKeyDown(KeyCode.Y))
+                    if (Input.GetKeyDown(KeyCode.P))
                         AttackChecker(false, true, true, false, false);
-                    if (Input.GetKeyDown(KeyCode.G))
+                    if (Input.GetKeyDown(KeyCode.L))
                         AttackChecker(true, false, true, false, false);
-                    if (Input.GetKeyDown(KeyCode.H))
+                    if (Input.GetKeyDown(KeyCode.Semicolon))
                         AttackChecker(true, true, true, false, false);
                 }
                 else if (isCrouching)
                 {
-                    if (Input.GetKeyDown(KeyCode.T))
+                    if (Input.GetKeyDown(KeyCode.O))
                         AttackChecker(false, false, false, false, true);
-                    if (Input.GetKeyDown(KeyCode.Y))
+                    if (Input.GetKeyDown(KeyCode.P))
                         AttackChecker(false, true, false, false, true);
-                    if (Input.GetKeyDown(KeyCode.G))
+                    if (Input.GetKeyDown(KeyCode.L))
                         AttackChecker(true, false, false, false, true);
-                    if (Input.GetKeyDown(KeyCode.H))
+                    if (Input.GetKeyDown(KeyCode.Semicolon))
                         AttackChecker(true, true, false, false, true);
                 }
                 else
                 {
-                    if (Input.GetKeyDown(KeyCode.T))
+                    if (Input.GetKeyDown(KeyCode.O))
                         AttackChecker(false, false, false, false, false);
-                    if (Input.GetKeyDown(KeyCode.Y))
+                    if (Input.GetKeyDown(KeyCode.P))
                         AttackChecker(false, true, false, false, false);
-                    if (Input.GetKeyDown(KeyCode.G))
+                    if (Input.GetKeyDown(KeyCode.L))
                         AttackChecker(true, false, false, false, false);
-                    if (Input.GetKeyDown(KeyCode.H))
+                    if (Input.GetKeyDown(KeyCode.Semicolon))
                         AttackChecker(true, true, false, false, false);
                 }
             }
@@ -696,7 +726,7 @@ public class Player1 : MonoBehaviour
         if (endlag > 0)
             endlag--;
         if (endlag < 0)
-           endlag = 0;
+            endlag = 0;
         if (inputRefreshTime == 1)
         {
             FrontDash = new List<string>(FrontDashInput);
@@ -748,7 +778,7 @@ public class Player1 : MonoBehaviour
                     }
                     else
                     {
-
+                        StartCoroutine(Attack(9, 3, 25, 1, .25f, -.5f, 6, 14, new List<string> { "high", "punch", "medium" }, 0, new Vector2(0, 0)));
                     }
                 }
             }
@@ -762,7 +792,7 @@ public class Player1 : MonoBehaviour
                     }
                     else
                     {
-
+                        StartCoroutine(Attack(4, 2, 19, .75f, .5f, -2, 4, 9, new List<string> { "high", "punch", "light" }, 0, new Vector2(0, 0)));
                     }
                 }
                 else
@@ -773,7 +803,7 @@ public class Player1 : MonoBehaviour
                     }
                     else
                     {
-
+                        StartCoroutine(Attack(3, 3, 18, 1, .5f, 0, 3, 9, new List<string> { "high", "punch", "light" }, 0, new Vector2(0, 0)));
                     }
                 }
             }
@@ -824,7 +854,7 @@ public class Player1 : MonoBehaviour
                     {
                         if (isCrouching)
                         {
-                            
+
                         }
                         else
                         {
@@ -866,7 +896,7 @@ public class Player1 : MonoBehaviour
                     {
                         if (isCrouching)
                         {
-                            
+
                         }
                         else
                         {
@@ -901,7 +931,7 @@ public class Player1 : MonoBehaviour
         canCancel = false;
         endlag = ending;
         dashTime = -1;
-        GameObject visual = Instantiate(visualizer, new Vector3((facingAdjust * playerMovement.x) + transform.position.x + xlen * 4 * facingAdjust, playerMovement.y + transform.position.y + yadjust, 0), transform.rotation);
+        GameObject visual = Instantiate(visualizer);
         visual.transform.localScale = new Vector3(xlen, ylen, 0);
         visual.SetActive(false);
         while (endlag > 0)
@@ -910,6 +940,7 @@ public class Player1 : MonoBehaviour
                 endlag = 0;
             if (endlag <= ending - startup && endlag > ending - startup - hittime && !hasHit)
             {
+                visual.transform.position = new Vector3(transform.position.x + xlen * 4 * facingAdjust, playerMovement.y + transform.position.y + yadjust, 0);
 
                 transform.position += movement;
                 Collider2D enemyHit = Physics2D.OverlapBox(new Vector2(transform.position.x + xlen * 4 * facingAdjust, transform.position.y + yadjust), new Vector2(xlen * 4, ylen * 4), 0, enemies);
@@ -918,7 +949,7 @@ public class Player1 : MonoBehaviour
                 {
 
                     canCancel = true;
-                    enemyHit.gameObject.GetComponent<Player2>().TakeDamage(damage, stun, angle, attackTypes);
+                    enemyHit.gameObject.GetComponent<Player1>().TakeDamage(damage, stun, angle, attackTypes);
 
                     hasHit = true;
                 }
@@ -955,7 +986,7 @@ public class Player1 : MonoBehaviour
             {
 
             }
-            
+
             else
             {
                 if (attackTypes[attackTypes.Count - 1].Equals("light"))
@@ -973,22 +1004,22 @@ public class Player1 : MonoBehaviour
                 {
                     if (facing.Equals("left"))
                     {
-                        transform.position = transform.position + new Vector3(1, 0, 0);
+                        transform.position = transform.position + new Vector3(1.5f, 0, 0);
                     }
                     else
                     {
-                        transform.position = transform.position - new Vector3(1, 0, 0);
+                        transform.position = transform.position - new Vector3(1.5f, 0, 0);
                     }
                 }
                 else
                 {
                     if (facing.Equals("left"))
                     {
-                        transform.position = transform.position + new Vector3(1, 0, 0);
+                        transform.position = transform.position + new Vector3(2, 0, 0);
                     }
                     else
                     {
-                        transform.position = transform.position - new Vector3(1, 0, 0);
+                        transform.position = transform.position - new Vector3(2, 0, 0);
                     }
                 }
             }
@@ -1006,6 +1037,17 @@ public class Player1 : MonoBehaviour
         {
             if (facing.Equals("left"))
             {
+                transform.position = transform.position + new Vector3(1, 0, 0);
+            }
+            else
+            {
+                transform.position = transform.position - new Vector3(1, 0, 0);
+            }
+        }
+        else if (attackTypes[attackTypes.Count - 1].Equals("medium"))
+        {
+            if (facing.Equals("left"))
+            {
                 transform.position = transform.position + new Vector3(1.5f, 0, 0);
             }
             else
@@ -1013,32 +1055,21 @@ public class Player1 : MonoBehaviour
                 transform.position = transform.position - new Vector3(1.5f, 0, 0);
             }
         }
-        else if (attackTypes[attackTypes.Count - 1].Equals("medium"))
-        {
-            if (facing.Equals("left"))
-            {
-                transform.position = transform.position + new Vector3(3, 0, 0);
-            }
-            else
-            {
-                transform.position = transform.position - new Vector3(3, 0, 0);
-            }
-        }
         else
         {
             if (facing.Equals("left"))
             {
-                transform.position = transform.position + new Vector3(4.5f, 0, 0);
+                transform.position = transform.position + new Vector3(2f, 0, 0);
             }
             else
             {
-                transform.position = transform.position - new Vector3(4.5f, 0, 0);
+                transform.position = transform.position - new Vector3(2f, 0, 0);
             }
         }
 
     }
 
-    void OnCollisionEnter2D(Collision2D col)
+    void OnCollisionStay2D(Collision2D col)
     {
         float yvel = rb.velocity.y;
         if (col.gameObject.Equals(opponent) && transform.position.y > col.gameObject.transform.position.y + col.gameObject.GetComponent<BoxCollider2D>().size.y && yvel < 0)

@@ -1,4 +1,4 @@
 sceneSetups:
-- path: Assets/flow.unity
+- path: Assets/Resources/flow.unity
   isLoaded: 1
   isActive: 1

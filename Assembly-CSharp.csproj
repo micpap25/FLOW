@@ -51,13 +51,13 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-     <Compile Include="Assets\gameManager.cs" />
-     <Compile Include="Assets\Scripts\CameraControls.cs" />
-     <Compile Include="Assets\Scripts\Countdown.cs" />
-     <Compile Include="Assets\Scripts\PlatformerPlayer.cs" />
-     <Compile Include="Assets\Scripts\Player.cs" />
-     <Compile Include="Assets\Scripts\Player1.cs" />
-     <Compile Include="Assets\Scripts\Player2.cs" />
+     <Compile Include="Assets\Resources\gameManager.cs" />
+     <Compile Include="Assets\Resources\Scripts\CameraControls.cs" />
+     <Compile Include="Assets\Resources\Scripts\Countdown.cs" />
+     <Compile Include="Assets\Resources\Scripts\PlatformerPlayer.cs" />
+     <Compile Include="Assets\Resources\Scripts\Player.cs" />
+     <Compile Include="Assets\Resources\Scripts\Player1.cs" />
+     <Compile Include="Assets\Resources\Scripts\Player2.cs" />
  <Reference Include="UnityEngine.UI">
  <HintPath>C:/Program Files/Unity/Hub/Editor/2017.3.1f1/Editor/Data/UnityExtensions/Unity/GUISystem/UnityEngine.UI.dll</HintPath>
  </Reference>
