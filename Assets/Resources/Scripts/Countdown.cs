@@ -19,7 +19,7 @@ public class Countdown : MonoBehaviour
 		GameObject player1 = GameObject.FindGameObjectWithTag("Player1");
 		GameObject player2 = GameObject.FindGameObjectWithTag("Player2");
 		p1script = player1.GetComponent<Player1>();
-		p2script = player1.GetComponent<Player2>();
+		p2script = player2.GetComponent<Player2>();
 		StartCoroutine("TimegoDown");
         Time.timeScale=1;
 		countdown.font = timeFont;
@@ -28,27 +28,33 @@ public class Countdown : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-       countdown.text=(""+RoundTime); 
+        if (RoundTime == 0) {
+            countdown.font = winFont;
+            if (p1script.health > p2script.health)
+            {
+                countdown.text = ("Player 1 wins!");
+
+            }
+            else if (p2script.health > p1script.health)
+            {
+                countdown.text = ("Player 1 wins!");
+
+            }
+            else
+            {
+                countdown.text = ("Draw");
+            }
+        }
+        else { countdown.text = ("" + RoundTime); }
+        
     }
+
     IEnumerator TimegoDown()
     {
         while(RoundTime>0){
             yield return new WaitForSeconds(1);
             RoundTime--;
         }
-		countdown.font = winFont;
-		if (p1script.health > p2script.health)
-		{
-			countdown.text = ("Player 1 wins!");
-
-		}
-		else if (p2script.health > p1script.health)
-		{
-			countdown.text = ("Player 1 wins!");
-
-		}
-		else {
-			countdown.text = ("Draw");
-		}
+		
 	}
 }

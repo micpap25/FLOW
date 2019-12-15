@@ -22,6 +22,7 @@ public class Player1 : MonoBehaviour
     public float jumpSpeed;
     public float jumpHeight;
     public string facing;
+    public bool hit;
     public float startInputRefreshTime;
     public float startDashTime;
     public bool canCrawl;
@@ -51,11 +52,11 @@ public class Player1 : MonoBehaviour
     private float inputRefreshTime;
     private bool canCancel;
     private bool isCrouching;
-    private bool crouchAdjusted;
     private bool canBlockHigh;
     private bool canBlockMid;
     private bool canBlockLow;
     private bool isAirborne;
+    private bool combocrouching;
     private string mostRecentAttackType;
     private bool blockStunning;
     private BoxCollider2D boxcol;
@@ -69,6 +70,9 @@ public class Player1 : MonoBehaviour
     private GameObject opponent;
     private Rigidbody2D rb;
     private float oldsize;
+    private float oldheight;
+    private float crouchsize;
+    private float crouchheight;
     private LayerMask enemies;
     public GameObject visualizer;
     private bool left;
@@ -80,6 +84,7 @@ public class Player1 : MonoBehaviour
         //set hitstun and endlag. hitstun is for damage lag, endlag is for move lag. Eventually split endlag into endlag, dashlag, and blocklag.
         hitstun = 0;
         endlag = 0;
+        hit = false;
         //lists for inputs. input list is const, other list changes as it goes through, if it's empty the move can be performed. Maybe change to arraylist?
         //after inputRefreshTime change all the lists in inputs back to the defaults.
         inputRefreshTime = 0;
@@ -108,19 +113,23 @@ public class Player1 : MonoBehaviour
         canCancel = false;
         //used to check if the character is crouching. Height is lowered & can't move unless isCrawl is true, then they move at CrawlSpeed.
         isCrouching = false;
-        //used to check if height change for crouching has been done. 
-        crouchAdjusted = true;
         //used to check if the character can currently block certain types of attacks
         canBlockHigh = false;
         canBlockMid = false;
         canBlockLow = false;
         //used to check if the character is in the air. 
         isAirborne = false;
+        //used to check if the character can change crouching state while comboing
+        combocrouching = false;
         //what the most recent attack was. use with above.
         mostRecentAttackType = "none";
         //aaaaaaaaaaa
         boxcol = GetComponent<BoxCollider2D>();
+        //the old and new heights for crouching
         oldsize = boxcol.size.y;
+        oldheight = transform.localScale.y;
+        crouchsize = oldsize * crouchScale;
+        crouchheight = oldheight * crouchScale;
         rb = GetComponent<Rigidbody2D>();
         spriteRenderer = GetComponent<SpriteRenderer>();
         anim = GetComponent<Animator>();
@@ -151,6 +160,7 @@ public class Player1 : MonoBehaviour
                 Debug.Log(b + ", ");
             }
         }
+        hit = false;
         bool right = Input.GetKey(KeyCode.D);
         bool left = Input.GetKey(KeyCode.A);
         //set important stuff first
@@ -159,10 +169,9 @@ public class Player1 : MonoBehaviour
             attacksTaken = new List<List<bool>> { };
            movementsTaken = new List<string> { };
        }
-        if (!Input.GetKey(KeyCode.S))
+        if (!Input.GetKey(KeyCode.S) && endlag == 0 && hitstun == 0)
         {
             isCrouching = false;
-            crouchAdjusted = false;
         }
         if (health <= 0)
             Destroy(gameObject);
@@ -182,19 +191,19 @@ public class Player1 : MonoBehaviour
             stun = spriteList[4];
             block = spriteList[6];
         }
-        if (!crouchAdjusted)
+        if (isCrouching)
+            {
+            boxcol.offset = new Vector2(0, (crouchsize - oldsize) / 2);
+            boxcol.size = new Vector2(boxcol.size.x, crouchsize);
+            transform.localScale = new Vector3(transform.localScale.x, crouchheight, transform.localScale.z);
+            transform.position = new Vector3(transform.position.x, (crouchheight - oldheight) / 2, transform.position.z);
+        }
+        else if (!isCrouching && transform.position.y <= 0)
         {
-            if (isCrouching)
-            {
-                boxcol.offset = new Vector2(0, ((oldsize * crouchScale) - (oldsize)) / 2);
-                boxcol.size = new Vector2(boxcol.size.x, oldsize * crouchScale);
-            }
-            else
-            {
-                boxcol.offset = new Vector2(0, 0);
-                boxcol.size = new Vector2(boxcol.size.x, oldsize);
-            }
-            crouchAdjusted = true;
+            boxcol.offset = new Vector2(0, 0);
+            boxcol.size = new Vector2(boxcol.size.x, oldsize);
+            transform.localScale = new Vector3(transform.localScale.x, oldheight, transform.localScale.z);
+            transform.position = new Vector3(transform.position.x, 0, transform.position.z);
         }
 
         if (gameObject.transform.position.y > 0)
@@ -208,11 +217,6 @@ public class Player1 : MonoBehaviour
         {
             isAirborne = false;
             GetComponent<Rigidbody2D>().velocity = new Vector2(0, 0);
-            if (gameObject.transform.position.y < 0)
-            {
-                float x = gameObject.transform.position.x;
-                gameObject.transform.position = new Vector3(x, 0, 0);
-            }
         }
 
         if (dashTime == -1)
@@ -253,7 +257,6 @@ public class Player1 : MonoBehaviour
                 {
                     //Include stuff for inputs  here at some point
                     isCrouching = true;
-                    crouchAdjusted = false;
                     if (canCrawl)
                     {
                         if (left)
@@ -569,6 +572,16 @@ public class Player1 : MonoBehaviour
         //check for actions that can be taken in either neutral or mid-attack(jumping, attacking, inputs for specials, supers)
         else if (hitstun == 0 && canCancel)
         {
+            if (Input.GetKey(KeyCode.S) && combocrouching)
+            {
+                combocrouching = false;
+                isCrouching = true;
+            }
+            if (!Input.GetKey(KeyCode.S) && combocrouching)
+            {
+                combocrouching = false;
+                isCrouching = false;
+            }
 
             if (Input.GetKeyDown(KeyCode.W) && !isAirborne && dashTime <= 0 && !movementsTaken.Contains("jump"))
             {
@@ -929,7 +942,7 @@ public class Player1 : MonoBehaviour
                     }
                     else
                     {
-
+                        StartCoroutine(Attack(9, 3, 25, 1, .25f, -.5f, 6, 14, new List<string> { "high", "punch", "medium" }, 0, new Vector2(0, 0)));
                     }
                 }
                 else
@@ -991,11 +1004,11 @@ public class Player1 : MonoBehaviour
                     {
                         if (isCrouching)
                         {
-
+                            StartCoroutine(Attack(13, 3, 31, 1f, .6f, -1.5f, 8, 17, new List<string> { "mid", "punch", "medium" }, 0, new Vector2(0, 0)));
                         }
                         else
                         {
-
+                            StartCoroutine(Attack(15, 3, 44, .75f, .5f, 0, 15, 22, new List<string> { "mid", "punch", "heavy" }, 0, new Vector2(4, 0)));
                         }
                     }
                 }
@@ -1016,7 +1029,7 @@ public class Player1 : MonoBehaviour
                     {
                         if (isCrouching)
                         {
-                            
+                            StartCoroutine(Attack(10, 6, 32, .75f, 2f, 1, 10, 17, new List<string> { "mid", "punch", "med" }, 0, new Vector2(0, 0)));
                         }
                         else
                         {
@@ -1111,8 +1124,8 @@ public class Player1 : MonoBehaviour
                 {
 
                     canCancel = true;
+                    combocrouching = true;
                     enemyHit.gameObject.GetComponent<Player2>().TakeDamage(damage, stun, angle, attackTypes);
-
                     hasHit = true;
                 }
             }
@@ -1128,6 +1141,7 @@ public class Player1 : MonoBehaviour
     //the damage is taken. applies damage, stun, and attack Types. Ties into hitstun.
     public void TakeDamage(int damage, float stun, float angle, List<string> attackTypes)
     {
+        hit = true;
         if (attackTypes[0].Equals("mid") && canBlockMid || attackTypes[0].Equals("low") && canBlockLow || attackTypes[0].Equals("high") && canBlockHigh)
         {
             Block(damage, stun, attackTypes);
@@ -1146,7 +1160,14 @@ public class Player1 : MonoBehaviour
 
             else if (isAirborne)
             {
-
+                if (facing.Equals("left") && rb.velocity.x < 0)
+                {
+                    rb.velocity = new Vector2(-rb.velocity.x, rb.velocity.y);
+                }
+                else if (facing.Equals("right") && rb.velocity.x > 0)
+                {
+                    rb.velocity = new Vector2(-rb.velocity.x, rb.velocity.y);
+                }
             }
             
             else

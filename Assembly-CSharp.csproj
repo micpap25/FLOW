@@ -53,7 +53,10 @@
   <ItemGroup>
      <Compile Include="Assets\Resources\gameManager.cs" />
      <Compile Include="Assets\Resources\Scripts\CameraControls.cs" />
+     <Compile Include="Assets\Resources\Scripts\CombobChanger.cs" />
      <Compile Include="Assets\Resources\Scripts\Countdown.cs" />
+     <Compile Include="Assets\Resources\Scripts\Healthp1.cs" />
+     <Compile Include="Assets\Resources\Scripts\Healthp2.cs" />
      <Compile Include="Assets\Resources\Scripts\PlatformerPlayer.cs" />
      <Compile Include="Assets\Resources\Scripts\Player.cs" />
      <Compile Include="Assets\Resources\Scripts\Player1.cs" />

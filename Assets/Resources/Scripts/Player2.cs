@@ -12,6 +12,7 @@ public class Player2 : MonoBehaviour
     //TO SAVE FOR A LONG TIME; ASSISTS, SUPERS, THE STORY, GUI PAST THE VITALS, MOTIVATORS, MODES!
     //EVENTUALLY THIS WILL BE A GOOD GAME!
 
+    //TODO: Make an indicator of who is who
 
     //use the name for moves!
     public string playerName;
@@ -21,6 +22,7 @@ public class Player2 : MonoBehaviour
     public float jumpSpeed;
     public float jumpHeight;
     public string facing;
+    public bool hit;
     public float startInputRefreshTime;
     public float startDashTime;
     public bool canCrawl;
@@ -44,16 +46,17 @@ public class Player2 : MonoBehaviour
     private List<string> DQCF;
     private List<string> DQCB;
     private List<string> DD;
-    private List<List<bool>> actionsTaken;
-    public float dashTime;
-    public float inputRefreshTime;
+    public List<List<bool>> attacksTaken;
+    public List<string> movementsTaken;
+    private float dashTime;
+    private float inputRefreshTime;
     private bool canCancel;
-    public bool isCrouching;
-    private bool crouchAdjusted;
+    private bool isCrouching;
     private bool canBlockHigh;
     private bool canBlockMid;
     private bool canBlockLow;
     private bool isAirborne;
+    private bool combocrouching;
     private string mostRecentAttackType;
     private bool blockStunning;
     private BoxCollider2D boxcol;
@@ -67,10 +70,13 @@ public class Player2 : MonoBehaviour
     private GameObject opponent;
     private Rigidbody2D rb;
     private float oldsize;
+    private float oldheight;
+    private float crouchsize;
+    private float crouchheight;
     private LayerMask enemies;
     public GameObject visualizer;
-    public bool left;
-    public bool right;
+    private bool left;
+    private bool right;
 
     // Use this for initialization
     void Start()
@@ -78,6 +84,7 @@ public class Player2 : MonoBehaviour
         //set hitstun and endlag. hitstun is for damage lag, endlag is for move lag. Eventually split endlag into endlag, dashlag, and blocklag.
         hitstun = 0;
         endlag = 0;
+        hit = false;
         //lists for inputs. input list is const, other list changes as it goes through, if it's empty the move can be performed. Maybe change to arraylist?
         //after inputRefreshTime change all the lists in inputs back to the defaults.
         inputRefreshTime = 0;
@@ -98,32 +105,36 @@ public class Player2 : MonoBehaviour
         DD = new List<string>(DDInput);
         keyword = "none";
         //list of actions taken. can't  repeat the same action twice in a flow.
-        actionsTaken = new List<List<bool>> { };
+        attacksTaken = new List<List<bool>> { };
+        movementsTaken = new List<string> { };
         //set the committment to dashing. maybe merge into endlag?
         dashTime = -1;
         //used to check if a move can cancel into a move/jump. true when the attack hits. false otherwise. Must be combined with checking the move's type. 
         canCancel = false;
         //used to check if the character is crouching. Height is lowered & can't move unless isCrawl is true, then they move at CrawlSpeed.
         isCrouching = false;
-        //used to check if height change for crouching has been done. 
-        crouchAdjusted = true;
         //used to check if the character can currently block certain types of attacks
         canBlockHigh = false;
         canBlockMid = false;
         canBlockLow = false;
         //used to check if the character is in the air. 
         isAirborne = false;
+        //used to check if the character can change crouching state while comboing
+        combocrouching = false;
         //what the most recent attack was. use with above.
         mostRecentAttackType = "none";
         //aaaaaaaaaaa
         boxcol = GetComponent<BoxCollider2D>();
+        //the old and new heights for crouching
         oldsize = boxcol.size.y;
+        oldheight = transform.localScale.y;
+        crouchsize = oldsize * crouchScale;
+        crouchheight = oldheight * crouchScale;
         rb = GetComponent<Rigidbody2D>();
         spriteRenderer = GetComponent<SpriteRenderer>();
         anim = GetComponent<Animator>();
         opponent = GameObject.FindGameObjectWithTag("Player1");
         enemies = LayerMask.GetMask("Player1");
-
         spriteList = new Sprite[] {
         Resources.Load<Sprite>("Sprites/NeutralTest"),
         Resources.Load<Sprite>("Sprites/NeutralTest2"),
@@ -137,23 +148,30 @@ public class Player2 : MonoBehaviour
         attacking = spriteList[3];
         stun = spriteList[5];
         block = spriteList[7];
-
     }
 
     // Update is called once per frame
     void FixedUpdate()
     {
-        right = Input.GetKey(KeyCode.RightArrow);
-        left = Input.GetKey(KeyCode.LeftArrow);
-        //set important stuff first
-        if (endlag == 0)
+        foreach (List<bool> l in attacksTaken)
         {
-            actionsTaken = new List<List<bool>> { };
+            foreach (bool b in l)
+            {
+                Debug.Log(b + ", ");
+            }
         }
-        if (!Input.GetKey(KeyCode.DownArrow))
+        hit = false;
+        bool right = Input.GetKey(KeyCode.RightArrow);
+        bool left = Input.GetKey(KeyCode.LeftArrow);
+        //set important stuff first
+        if (opponent.GetComponent<Player1>().hitstun == 0 && endlag == 0)
+        {
+            attacksTaken = new List<List<bool>> { };
+            movementsTaken = new List<string> { };
+        }
+        if (!Input.GetKey(KeyCode.DownArrow) && endlag == 0 && hitstun == 0)
         {
             isCrouching = false;
-            crouchAdjusted = false;
         }
         if (health <= 0)
             Destroy(gameObject);
@@ -173,19 +191,19 @@ public class Player2 : MonoBehaviour
             stun = spriteList[4];
             block = spriteList[6];
         }
-        if (!crouchAdjusted)
+        if (isCrouching)
         {
-            if (isCrouching)
-            {
-                boxcol.offset = new Vector2(0, ((oldsize * crouchScale) - (oldsize)) / 2);
-                boxcol.size = new Vector2(boxcol.size.x, oldsize * crouchScale);
-            }
-            else
-            {
-                boxcol.offset = new Vector2(0, 0);
-                boxcol.size = new Vector2(boxcol.size.x, oldsize);
-            }
-            crouchAdjusted = true;
+            boxcol.offset = new Vector2(0, (crouchsize - oldsize) / 2);
+            boxcol.size = new Vector2(boxcol.size.x, crouchsize);
+            transform.localScale = new Vector3(transform.localScale.x, crouchheight, transform.localScale.z);
+            transform.position = new Vector3(transform.position.x, (crouchheight - oldheight) / 2, transform.position.z);
+        }
+        else if (!isCrouching && transform.position.y <= 0)
+        {
+            boxcol.offset = new Vector2(0, 0);
+            boxcol.size = new Vector2(boxcol.size.x, oldsize);
+            transform.localScale = new Vector3(transform.localScale.x, oldheight, transform.localScale.z);
+            transform.position = new Vector3(transform.position.x, 0, transform.position.z);
         }
 
         if (gameObject.transform.position.y > 0)
@@ -199,11 +217,6 @@ public class Player2 : MonoBehaviour
         {
             isAirborne = false;
             GetComponent<Rigidbody2D>().velocity = new Vector2(0, 0);
-            if (gameObject.transform.position.y < 0)
-            {
-                float x = gameObject.transform.position.x;
-                gameObject.transform.position = new Vector3(x, 0, 0);
-            }
         }
 
         if (dashTime == -1)
@@ -244,7 +257,6 @@ public class Player2 : MonoBehaviour
                 {
                     //Include stuff for inputs  here at some point
                     isCrouching = true;
-                    crouchAdjusted = false;
                     if (canCrawl)
                     {
                         if (left)
@@ -414,24 +426,48 @@ public class Player2 : MonoBehaviour
                 if (Input.GetKey(KeyCode.DownArrow))
                 {
                     if (Input.GetKeyDown(KeyCode.O))
+                    {
                         AttackChecker(false, false, true, true, false);
+                        attacksTaken.Add(new List<bool> { false, false, true, true, false });
+                    }
                     if (Input.GetKeyDown(KeyCode.P))
+                    {
                         AttackChecker(false, true, true, true, false);
+                        attacksTaken.Add(new List<bool> { false, true, true, true, false });
+                    }
                     if (Input.GetKeyDown(KeyCode.L))
+                    {
                         AttackChecker(true, false, true, true, false);
+                        attacksTaken.Add(new List<bool> { true, false, true, true, false });
+                    }
                     if (Input.GetKeyDown(KeyCode.Semicolon))
+                    {
                         AttackChecker(true, true, true, true, false);
+                        attacksTaken.Add(new List<bool> { true, true, true, true, false });
+                    }
                 }
                 else
                 {
                     if (Input.GetKeyDown(KeyCode.O))
+                    {
                         AttackChecker(false, false, false, true, false);
+                        attacksTaken.Add(new List<bool> { false, false, false, true, false });
+                    }
                     if (Input.GetKeyDown(KeyCode.P))
+                    {
                         AttackChecker(false, true, false, true, false);
+                        attacksTaken.Add(new List<bool> { false, true, false, true, false });
+                    }
                     if (Input.GetKeyDown(KeyCode.L))
+                    {
                         AttackChecker(true, false, false, true, false);
+                        attacksTaken.Add(new List<bool> { true, false, false, true, false });
+                    }
                     if (Input.GetKeyDown(KeyCode.Semicolon))
+                    {
                         AttackChecker(true, true, false, true, false);
+                        attacksTaken.Add(new List<bool> { true, true, false, true, false });
+                    }
                 }
             }
             else
@@ -439,68 +475,130 @@ public class Player2 : MonoBehaviour
                 if ((left && facing.Equals("left") || right && facing.Equals("right")) && isCrouching)
                 {
                     if (Input.GetKeyDown(KeyCode.O))
+                    {
                         AttackChecker(false, false, true, false, true);
+                        attacksTaken.Add(new List<bool> { false, false, true, false, true });
+                    }
                     if (Input.GetKeyDown(KeyCode.P))
+                    {
                         AttackChecker(false, true, true, false, true);
+                        attacksTaken.Add(new List<bool> { false, true, true, false, true });
+                    }
                     if (Input.GetKeyDown(KeyCode.L))
+                    {
                         AttackChecker(true, false, true, false, true);
+                        attacksTaken.Add(new List<bool> { true, false, true, false, true });
+                    }
                     if (Input.GetKeyDown(KeyCode.Semicolon))
+                    {
                         AttackChecker(true, true, true, false, true);
+                        attacksTaken.Add(new List<bool> { true, true, true, false, true });
+                    }
                 }
                 else if (left && facing.Equals("left") || right && facing.Equals("right"))
                 {
                     if (Input.GetKeyDown(KeyCode.O))
+                    {
                         AttackChecker(false, false, true, false, false);
+                        attacksTaken.Add(new List<bool> { false, false, true, false, false });
+                    }
                     if (Input.GetKeyDown(KeyCode.P))
+                    {
                         AttackChecker(false, true, true, false, false);
+                        attacksTaken.Add(new List<bool> { false, true, true, false, false });
+                    }
                     if (Input.GetKeyDown(KeyCode.L))
+                    {
                         AttackChecker(true, false, true, false, false);
+                        attacksTaken.Add(new List<bool> { true, false, true, false, false });
+                    }
                     if (Input.GetKeyDown(KeyCode.Semicolon))
+                    {
                         AttackChecker(true, true, true, false, false);
+                        attacksTaken.Add(new List<bool> { true, true, true, false, false });
+                    }
                 }
                 else if (isCrouching)
                 {
                     if (Input.GetKeyDown(KeyCode.O))
+                    {
                         AttackChecker(false, false, false, false, true);
+                        attacksTaken.Add(new List<bool> { false, false, false, false, true });
+                    }
                     if (Input.GetKeyDown(KeyCode.P))
+                    {
                         AttackChecker(false, true, false, false, true);
+                        attacksTaken.Add(new List<bool> { false, true, false, false, true });
+                    }
                     if (Input.GetKeyDown(KeyCode.L))
+                    {
                         AttackChecker(true, false, false, false, true);
+                        attacksTaken.Add(new List<bool> { true, false, false, false, true });
+                    }
                     if (Input.GetKeyDown(KeyCode.Semicolon))
+                    {
                         AttackChecker(true, true, false, false, true);
+                        attacksTaken.Add(new List<bool> { true, true, false, false, true });
+                    }
                 }
                 else
                 {
                     if (Input.GetKeyDown(KeyCode.O))
+                    {
                         AttackChecker(false, false, false, false, false);
+                        attacksTaken.Add(new List<bool> { false, false, false, false, false });
+                    }
                     if (Input.GetKeyDown(KeyCode.P))
+                    {
                         AttackChecker(false, true, false, false, false);
+                        attacksTaken.Add(new List<bool> { false, true, false, false, false });
+                    }
                     if (Input.GetKeyDown(KeyCode.L))
+                    {
                         AttackChecker(true, false, false, false, false);
+                        attacksTaken.Add(new List<bool> { true, false, false, false, false });
+                    }
                     if (Input.GetKeyDown(KeyCode.Semicolon))
+                    {
                         AttackChecker(true, true, false, false, false);
+                        attacksTaken.Add(new List<bool> { true, true, false, false, false });
+                    }
                 }
             }
+            //TODO: set canblocks here
 
 
         }
         //check for actions that can be taken in either neutral or mid-attack(jumping, attacking, inputs for specials, supers)
         else if (hitstun == 0 && canCancel)
         {
+            if (Input.GetKey(KeyCode.DownArrow) && combocrouching)
+            {
+                combocrouching = false;
+                isCrouching = true;
+            }
+            if (!Input.GetKey(KeyCode.DownArrow) && combocrouching)
+            {
+                combocrouching = false;
+                isCrouching = false;
+            }
 
-            if (Input.GetKeyDown(KeyCode.UpArrow) && !isAirborne && dashTime <= 0)
+            if (Input.GetKeyDown(KeyCode.UpArrow) && !isAirborne && dashTime <= 0 && !movementsTaken.Contains("jump"))
             {
                 if (left)
                 {
                     GetComponent<Rigidbody2D>().AddForce(new Vector2(-moveSpeed * jumpSpeed * 100, jumpHeight * jumpSpeed));
+                    movementsTaken.Add("jump");
                 }
                 else if (right)
                 {
                     GetComponent<Rigidbody2D>().AddForce(new Vector2(moveSpeed * jumpSpeed * 100, jumpHeight * jumpSpeed));
+                    movementsTaken.Add("jump");
                 }
                 else
                 {
                     GetComponent<Rigidbody2D>().AddForce(new Vector2(0, jumpSpeed * jumpHeight));
+                    movementsTaken.Add("jump");
                 }
             }
 
@@ -512,20 +610,22 @@ public class Player2 : MonoBehaviour
             {
                 if (facing.Equals("left") && dashdir.Equals("front") || facing.Equals("right") && dashdir.Equals("back"))
                 {
-                    if (Input.GetKeyDown(KeyCode.UpArrow))
+                    if (Input.GetKeyDown(KeyCode.UpArrow) && !movementsTaken.Contains("jump"))
                     {
                         GetComponent<Rigidbody2D>().AddForce(new Vector2(-moveSpeed * jumpSpeed * 100 * (dashSpeed / moveSpeed), jumpHeight * jumpSpeed));
                         dashTime = 0;
+                        movementsTaken.Add("jump");
                     }
                     else
                         Walk(-dashSpeed);
                 }
                 else
                 {
-                    if (Input.GetKeyDown(KeyCode.UpArrow))
+                    if (Input.GetKeyDown(KeyCode.UpArrow) && !movementsTaken.Contains("jump"))
                     {
                         GetComponent<Rigidbody2D>().AddForce(new Vector2(moveSpeed * jumpSpeed * 100 * (dashSpeed / moveSpeed), jumpHeight * jumpSpeed));
                         dashTime = 0;
+                        movementsTaken.Add("jump");
                     }
                     else
                         Walk(dashSpeed);
@@ -543,10 +643,11 @@ public class Player2 : MonoBehaviour
                 if (BackDash[0].Equals(keyword))
                 {
                     BackDash.RemoveAt(0);
-                    if (BackDash.Count == 0)
+                    if (BackDash.Count == 0 && !movementsTaken.Contains("dash"))
                     {
                         dashTime = startDashTime;
                         dashdir = "back";
+                        movementsTaken.Add("dash");
                         inputRefreshTime = 0;
                         //facing == 
                         BackDash = new List<string>(BackDashInput);
@@ -567,10 +668,11 @@ public class Player2 : MonoBehaviour
                 if (FrontDash[0].Equals(keyword))
                 {
                     FrontDash.RemoveAt(0);
-                    if (FrontDash.Count == 0)
+                    if (FrontDash.Count == 0 && !movementsTaken.Contains("dash"))
                     {
                         dashTime = startDashTime;
                         dashdir = "front";
+                        movementsTaken.Add("dash");
                         inputRefreshTime = 0;
                         FrontDash = new List<string>(FrontDashInput);
                     }
@@ -597,10 +699,11 @@ public class Player2 : MonoBehaviour
                 if (BackDash[0].Equals(keyword))
                 {
                     BackDash.RemoveAt(0);
-                    if (BackDash.Count == 0)
+                    if (BackDash.Count == 0 && !movementsTaken.Contains("dash"))
                     {
                         dashTime = startDashTime;
                         inputRefreshTime = 0;
+                        movementsTaken.Add("dash");
                         dashdir = "back";
                         BackDash = new List<string>(BackDashInput);
                     }
@@ -617,10 +720,11 @@ public class Player2 : MonoBehaviour
                 if (FrontDash[0].Equals(keyword))
                 {
                     FrontDash.RemoveAt(0);
-                    if (FrontDash.Count == 0)
+                    if (FrontDash.Count == 0 && !movementsTaken.Contains("dash"))
                     {
                         dashTime = startDashTime;
                         inputRefreshTime = 0;
+                        movementsTaken.Add("dash");
                         dashdir = "front";
                         FrontDash = new List<string>(FrontDashInput);
                     }
@@ -636,77 +740,148 @@ public class Player2 : MonoBehaviour
                 }
             }
 
-
             if (isAirborne)
             {
                 if (Input.GetKey(KeyCode.DownArrow))
                 {
-                    if (Input.GetKeyDown(KeyCode.O))
+                    if (Input.GetKeyDown(KeyCode.O) && !attacksTakenComparison(attacksTaken, false, false, true, true, false))
+                    {
                         AttackChecker(false, false, true, true, false);
-                    if (Input.GetKeyDown(KeyCode.P))
+                        attacksTaken.Add(new List<bool> { false, false, true, true, false });
+                    }
+                    if (Input.GetKeyDown(KeyCode.P) && !attacksTakenComparison(attacksTaken, false, true, true, true, false))
+                    {
                         AttackChecker(false, true, true, true, false);
-                    if (Input.GetKeyDown(KeyCode.L))
+                        attacksTaken.Add(new List<bool> { false, true, true, true, false });
+                    }
+                    if (Input.GetKeyDown(KeyCode.L) && !attacksTakenComparison(attacksTaken, true, false, true, true, false))
+                    {
                         AttackChecker(true, false, true, true, false);
-                    if (Input.GetKeyDown(KeyCode.Semicolon))
+                        attacksTaken.Add(new List<bool> { true, false, true, true, false });
+                    }
+                    if (Input.GetKeyDown(KeyCode.Semicolon) && !attacksTakenComparison(attacksTaken, true, true, true, true, false))
+                    {
                         AttackChecker(true, true, true, true, false);
+                        attacksTaken.Add(new List<bool> { true, true, true, true, false });
+                    }
                 }
                 else
                 {
-                    if (Input.GetKeyDown(KeyCode.O))
+                    if (Input.GetKeyDown(KeyCode.O) && !attacksTakenComparison(attacksTaken, false, false, false, true, false))
+                    {
                         AttackChecker(false, false, false, true, false);
-                    if (Input.GetKeyDown(KeyCode.P))
+                        attacksTaken.Add(new List<bool> { false, false, false, true, false });
+                    }
+                    if (Input.GetKeyDown(KeyCode.P) && !attacksTakenComparison(attacksTaken, false, true, false, true, false))
+                    {
                         AttackChecker(false, true, false, true, false);
-                    if (Input.GetKeyDown(KeyCode.L))
+                        attacksTaken.Add(new List<bool> { false, true, false, true, false });
+                    }
+                    if (Input.GetKeyDown(KeyCode.L) && !attacksTakenComparison(attacksTaken, true, false, false, true, false))
+                    {
                         AttackChecker(true, false, false, true, false);
-                    if (Input.GetKeyDown(KeyCode.Semicolon))
+                        attacksTaken.Add(new List<bool> { true, false, false, true, false });
+                    }
+                    if (Input.GetKeyDown(KeyCode.Semicolon) && !attacksTakenComparison(attacksTaken, true, true, false, true, false))
+                    {
                         AttackChecker(true, true, false, true, false);
+                        attacksTaken.Add(new List<bool> { true, true, false, true, false });
+                    }
                 }
             }
             else
             {
                 if ((left && facing.Equals("left") || right && facing.Equals("right")) && isCrouching)
                 {
-                    if (Input.GetKeyDown(KeyCode.O))
+                    if (Input.GetKeyDown(KeyCode.O) && !attacksTakenComparison(attacksTaken, false, false, true, false, true))
+                    {
                         AttackChecker(false, false, true, false, true);
-                    if (Input.GetKeyDown(KeyCode.P))
+                        attacksTaken.Add(new List<bool> { false, false, true, false, true });
+                    }
+                    if (Input.GetKeyDown(KeyCode.P) && !attacksTakenComparison(attacksTaken, false, true, true, false, true))
+                    {
                         AttackChecker(false, true, true, false, true);
-                    if (Input.GetKeyDown(KeyCode.L))
+                        attacksTaken.Add(new List<bool> { false, true, true, false, true });
+                    }
+                    if (Input.GetKeyDown(KeyCode.L) && !attacksTakenComparison(attacksTaken, true, false, true, false, true))
+                    {
                         AttackChecker(true, false, true, false, true);
-                    if (Input.GetKeyDown(KeyCode.Semicolon))
+                        attacksTaken.Add(new List<bool> { true, false, true, false, true });
+                    }
+                    if (Input.GetKeyDown(KeyCode.Semicolon) && !attacksTakenComparison(attacksTaken, true, true, true, false, true))
+                    {
                         AttackChecker(true, true, true, false, true);
+                        attacksTaken.Add(new List<bool> { true, true, true, false, true });
+                    }
                 }
                 else if (left && facing.Equals("left") || right && facing.Equals("right"))
                 {
-                    if (Input.GetKeyDown(KeyCode.O))
+                    if (Input.GetKeyDown(KeyCode.O) && !attacksTakenComparison(attacksTaken, false, false, true, false, false))
+                    {
                         AttackChecker(false, false, true, false, false);
-                    if (Input.GetKeyDown(KeyCode.P))
+                        attacksTaken.Add(new List<bool> { false, false, true, false, false });
+                    }
+                    if (Input.GetKeyDown(KeyCode.P) && !attacksTakenComparison(attacksTaken, false, true, true, false, false))
+                    {
                         AttackChecker(false, true, true, false, false);
-                    if (Input.GetKeyDown(KeyCode.L))
+                        attacksTaken.Add(new List<bool> { false, true, true, false, false });
+                    }
+                    if (Input.GetKeyDown(KeyCode.L) && !attacksTakenComparison(attacksTaken, true, false, true, false, false))
+                    {
                         AttackChecker(true, false, true, false, false);
-                    if (Input.GetKeyDown(KeyCode.Semicolon))
+                        attacksTaken.Add(new List<bool> { true, false, true, false, false });
+                    }
+                    if (Input.GetKeyDown(KeyCode.Semicolon) && !attacksTakenComparison(attacksTaken, true, true, true, false, false))
+                    {
                         AttackChecker(true, true, true, false, false);
+                        attacksTaken.Add(new List<bool> { true, true, true, false, false });
+                    }
                 }
                 else if (isCrouching)
                 {
-                    if (Input.GetKeyDown(KeyCode.O))
+                    if (Input.GetKeyDown(KeyCode.O) && !attacksTakenComparison(attacksTaken, false, false, false, false, true))
+                    {
                         AttackChecker(false, false, false, false, true);
-                    if (Input.GetKeyDown(KeyCode.P))
+                        attacksTaken.Add(new List<bool> { false, false, false, false, true });
+                    }
+                    if (Input.GetKeyDown(KeyCode.P) && !attacksTakenComparison(attacksTaken, false, true, false, false, true))
+                    {
                         AttackChecker(false, true, false, false, true);
-                    if (Input.GetKeyDown(KeyCode.L))
+                        attacksTaken.Add(new List<bool> { false, true, false, false, true });
+                    }
+                    if (Input.GetKeyDown(KeyCode.L) && !attacksTakenComparison(attacksTaken, true, false, false, false, true))
+                    {
                         AttackChecker(true, false, false, false, true);
-                    if (Input.GetKeyDown(KeyCode.Semicolon))
+                        attacksTaken.Add(new List<bool> { true, false, false, false, true });
+                    }
+                    if (Input.GetKeyDown(KeyCode.Semicolon) && !attacksTakenComparison(attacksTaken, true, true, false, false, true))
+                    {
                         AttackChecker(true, true, false, false, true);
+                        attacksTaken.Add(new List<bool> { true, true, false, false, true });
+                    }
                 }
                 else
                 {
-                    if (Input.GetKeyDown(KeyCode.O))
+                    if (Input.GetKeyDown(KeyCode.O) && !attacksTakenComparison(attacksTaken, false, false, false, false, false))
+                    {
                         AttackChecker(false, false, false, false, false);
-                    if (Input.GetKeyDown(KeyCode.P))
+                        attacksTaken.Add(new List<bool> { false, false, false, false, false });
+                    }
+                    if (Input.GetKeyDown(KeyCode.P) && !attacksTakenComparison(attacksTaken, false, true, false, false, false))
+                    {
                         AttackChecker(false, true, false, false, false);
-                    if (Input.GetKeyDown(KeyCode.L))
+                        attacksTaken.Add(new List<bool> { false, true, false, false, false });
+                    }
+                    if (Input.GetKeyDown(KeyCode.L) && !attacksTakenComparison(attacksTaken, true, false, false, false, false))
+                    {
                         AttackChecker(true, false, false, false, false);
-                    if (Input.GetKeyDown(KeyCode.Semicolon))
+                        attacksTaken.Add(new List<bool> { true, false, false, false, false });
+                    }
+                    if (Input.GetKeyDown(KeyCode.Semicolon) && !attacksTakenComparison(attacksTaken, true, true, false, false, false))
+                    {
                         AttackChecker(true, true, false, false, false);
+                        attacksTaken.Add(new List<bool> { true, true, false, false, false });
+                    }
                 }
             }
         }
@@ -767,7 +942,7 @@ public class Player2 : MonoBehaviour
                     }
                     else
                     {
-
+                        StartCoroutine(Attack(9, 3, 25, 1, .25f, -.5f, 6, 14, new List<string> { "high", "punch", "medium" }, 0, new Vector2(0, 0)));
                     }
                 }
                 else
@@ -829,11 +1004,11 @@ public class Player2 : MonoBehaviour
                     {
                         if (isCrouching)
                         {
-
+                            StartCoroutine(Attack(13, 3, 31, 1f, .6f, -1.5f, 8, 17, new List<string> { "mid", "punch", "medium" }, 0, new Vector2(0, 0)));
                         }
                         else
                         {
-
+                            StartCoroutine(Attack(15, 3, 44, .75f, .5f, 0, 15, 22, new List<string> { "mid", "punch", "heavy" }, 0, new Vector2(4, 0)));
                         }
                     }
                 }
@@ -854,7 +1029,7 @@ public class Player2 : MonoBehaviour
                     {
                         if (isCrouching)
                         {
-
+                            StartCoroutine(Attack(10, 6, 32, .75f, 2f, 1, 10, 17, new List<string> { "mid", "punch", "med" }, 0, new Vector2(0, 0)));
                         }
                         else
                         {
@@ -949,8 +1124,8 @@ public class Player2 : MonoBehaviour
                 {
 
                     canCancel = true;
+                    combocrouching = true;
                     enemyHit.gameObject.GetComponent<Player1>().TakeDamage(damage, stun, angle, attackTypes);
-
                     hasHit = true;
                 }
             }
@@ -966,6 +1141,7 @@ public class Player2 : MonoBehaviour
     //the damage is taken. applies damage, stun, and attack Types. Ties into hitstun.
     public void TakeDamage(int damage, float stun, float angle, List<string> attackTypes)
     {
+        hit = true;
         if (attackTypes[0].Equals("mid") && canBlockMid || attackTypes[0].Equals("low") && canBlockLow || attackTypes[0].Equals("high") && canBlockHigh)
         {
             Block(damage, stun, attackTypes);
@@ -984,7 +1160,14 @@ public class Player2 : MonoBehaviour
 
             else if (isAirborne)
             {
-
+                if (facing.Equals("left") && rb.velocity.x < 0)
+                {
+                    rb.velocity = new Vector2(-rb.velocity.x, rb.velocity.y);
+                }
+                else if (facing.Equals("right") && rb.velocity.x > 0)
+                {
+                    rb.velocity = new Vector2(-rb.velocity.x, rb.velocity.y);
+                }
             }
 
             else
@@ -1067,6 +1250,16 @@ public class Player2 : MonoBehaviour
             }
         }
 
+    }
+
+    bool attacksTakenComparison(List<List<bool>> attacksTaken, bool one, bool two, bool three, bool four, bool five)
+    {
+        foreach (List<bool> l in attacksTaken)
+        {
+            if (l[0] == one && l[1] == two && l[2] == three && l[3] == four && l[4] == five)
+                return true;
+        }
+        return false;
     }
 
     void OnCollisionStay2D(Collision2D col)
