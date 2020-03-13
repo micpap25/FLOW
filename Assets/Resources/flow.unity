@@ -664,7 +664,7 @@ MonoBehaviour:
   jumpHeight: 250
   facing: 
   hit: 0
-  startInputRefreshTime: 20
+  startInputRefreshTime: 15
   startDashTime: 10
   canCrawl: 1
   crawlSpeed: 0.2
