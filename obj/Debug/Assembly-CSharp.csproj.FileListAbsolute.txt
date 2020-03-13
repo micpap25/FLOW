@@ -133,3 +133,6 @@ C:\Users\Owner\Documents\FLOW\Temp\bin\Debug\UnityEditor.iOS.Extensions.Xcode.xm
 C:\Users\Owner\Documents\FLOW\obj\Debug\Assembly-CSharp.pdb
 C:\Users\Owner\Documents\FLOW\obj\Debug\Assembly-CSharp.csprojAssemblyReference.cache
 C:\Users\Owner\Documents\FLOW\obj\Debug\Assembly-CSharp.csproj.CopyComplete
+C:\Users\Owner\Documents\GitHub\FLOW\obj\Debug\Assembly-CSharp.csprojAssemblyReference.cache
+C:\Users\Owner\Documents\GitHub\FLOW\obj\Debug\Assembly-CSharp.dll
+C:\Users\Owner\Documents\GitHub\FLOW\obj\Debug\Assembly-CSharp.pdb

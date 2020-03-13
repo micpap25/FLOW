@@ -19,7 +19,7 @@ public class CameraControls : MonoBehaviour {
 	void FixedUpdate () {
         height = Camera.main.orthographicSize - 5;
 	    Camera.main.transform.position = new Vector3 ((playeroneposition.x + playertwoposition.x) / 2, height + Mathf.Max(playeroneposition.y-height, playertwoposition.y-height ,0), -1);
-        Camera.main.orthographicSize = Mathf.Min(Mathf.Max(10, (Mathf.Abs((playeroneposition.x - playertwoposition.x) / 2)) * .75f), 20);
+        Camera.main.orthographicSize = Mathf.Min(Mathf.Max(12, (Mathf.Abs((playeroneposition.x - playertwoposition.x) / 2)) * .75f), 20);
 	    playeroneposition = GameObject.FindGameObjectWithTag ("Player1").transform.position;
 	    playertwoposition = GameObject.FindGameObjectWithTag ("Player2").transform.position;
 	}

@@ -12,7 +12,13 @@ public class Player1 : MonoBehaviour
     //TO SAVE FOR A LONG TIME; ASSISTS, SUPERS, THE STORY, GUI PAST THE VITALS, MOTIVATORS, MODES!
     //EVENTUALLY THIS WILL BE A GOOD GAME!
 
-    //TODO: Make an indicator of who is who
+
+    //TODO: 
+    //Set up for corner by removing transform.translate and such
+        //change code for falling on other player so character doesn't get pushed through walls
+        //Find out why touching corner changes player y position
+    //add proper knockback (work on angle)
+    //add knockdown state and getup state (do above first, then keep going)
 
     //use the name for moves!
     public string playerName;
@@ -30,6 +36,11 @@ public class Player1 : MonoBehaviour
     public float crouchScale;
     public float hitstun;
     private float endlag;
+    public float baseknockdowntime;
+    public float knockdown;
+    public float basegetuptime;
+    public float getup;
+    private bool hardknock;
     private string keyword;
     private string dashdir;
     public List<string> FrontDashInput;
@@ -112,7 +123,7 @@ public class Player1 : MonoBehaviour
         //used to check if a move can cancel into a move/jump. true when the attack hits. false otherwise. Must be combined with checking the move's type. 
         canCancel = false;
         //used to check if the character is crouching. Height is lowered & can't move unless isCrawl is true, then they move at CrawlSpeed.
-        isCrouching = false;
+        isCrouching = true;
         //used to check if the character can currently block certain types of attacks
         canBlockHigh = false;
         canBlockMid = false;
@@ -123,6 +134,10 @@ public class Player1 : MonoBehaviour
         combocrouching = false;
         //what the most recent attack was. use with above.
         mostRecentAttackType = "none";
+        //knockdown occurs when a heavy attack hits the enemy. Stuck on ground, not invincible but hitbox shifted below ground.
+        knockdown = 0;
+        //getup occurs either after knockdown or if ground is hit while in hitstun. Invincible. (might change so it goes into reduced knockdown time first)
+        getup = 0;
         //aaaaaaaaaaa
         boxcol = GetComponent<BoxCollider2D>();
         //the old and new heights for crouching
@@ -153,13 +168,14 @@ public class Player1 : MonoBehaviour
     // Update is called once per frame
     void FixedUpdate()
     {
-        foreach (List<bool> l in attacksTaken)
+       /* foreach (List<bool> l in attacksTaken)
         {
             foreach(bool b in l)
             {
                 Debug.Log(b + ", ");
             }
-        }
+        } */
+
         hit = false;
         bool right = Input.GetKey(KeyCode.D);
         bool left = Input.GetKey(KeyCode.A);
@@ -169,13 +185,10 @@ public class Player1 : MonoBehaviour
             attacksTaken = new List<List<bool>> { };
            movementsTaken = new List<string> { };
        }
-        if (!Input.GetKey(KeyCode.S) && endlag == 0 && hitstun == 0)
-        {
-            isCrouching = false;
-        }
         if (health <= 0)
             Destroy(gameObject);
-        if (opponent.transform.position.x < transform.position.x)
+        //disable the isAirborne parts if turning around in the air should be a thing
+        if (opponent.transform.position.x < transform.position.x && !isAirborne)
         {
             facing = "left";
             neutral = spriteList[1];
@@ -183,7 +196,7 @@ public class Player1 : MonoBehaviour
             stun = spriteList[5];
             block = spriteList[7];
         }
-        else
+        else if (!isAirborne)
         {
             facing = "right";
             neutral = spriteList[0];
@@ -198,12 +211,17 @@ public class Player1 : MonoBehaviour
             transform.localScale = new Vector3(transform.localScale.x, crouchheight, transform.localScale.z);
             transform.position = new Vector3(transform.position.x, (crouchheight - oldheight) / 2, transform.position.z);
         }
-        else if (!isCrouching && transform.position.y <= 0)
+        else if (!isCrouching)
         {
             boxcol.offset = new Vector2(0, 0);
             boxcol.size = new Vector2(boxcol.size.x, oldsize);
             transform.localScale = new Vector3(transform.localScale.x, oldheight, transform.localScale.z);
-            transform.position = new Vector3(transform.position.x, 0, transform.position.z);
+            transform.position = new Vector3(transform.position.x, transform.position.y, transform.position.z);
+        }
+
+        if (!Input.GetKey(KeyCode.S) && endlag == 0 && hitstun == 0)
+        {
+            isCrouching = false;
         }
 
         if (gameObject.transform.position.y > 0)
@@ -211,12 +229,12 @@ public class Player1 : MonoBehaviour
             isAirborne = true;
             BackDash = new List<string>(BackDashInput);
             FrontDash = new List<string>(FrontDashInput);
-            GetComponent<Rigidbody2D>().AddForce(-transform.up * jumpSpeed * jumpSpeed);
+            rb.AddForce(-transform.up * jumpSpeed * jumpSpeed);
         }
-        else
+        else if (hitstun == 0)
         {
             isAirborne = false;
-            GetComponent<Rigidbody2D>().velocity = new Vector2(0, 0);
+            rb.velocity = new Vector2(0, 0);
         }
 
         if (dashTime == -1)
@@ -224,6 +242,8 @@ public class Player1 : MonoBehaviour
             dashdir = "none";
         }
 
+        if (hitstun == 0)
+            hardknock = false;
 
         //check for actions that can only be taken in neutral (walking, dashing, blocking)
         if (hitstun == 0 && endlag == 0)
@@ -565,7 +585,6 @@ public class Player1 : MonoBehaviour
                     }
                 }
             }
-            //TODO: set canblocks here
 
 
         }
@@ -585,14 +604,16 @@ public class Player1 : MonoBehaviour
 
             if (Input.GetKeyDown(KeyCode.W) && !isAirborne && dashTime <= 0 && !movementsTaken.Contains("jump"))
             {
+                isCrouching = false;
+                combocrouching = false;
                 if (left)
                 {
-                    GetComponent<Rigidbody2D>().AddForce(new Vector2(-moveSpeed * jumpSpeed * 100, jumpHeight * jumpSpeed));
+                    GetComponent<Rigidbody2D>().AddForce(new Vector2(-moveSpeed * jumpSpeed * 150, jumpHeight * jumpSpeed));
                     movementsTaken.Add("jump");
                 }
                 else if (right)
                 {
-                    GetComponent<Rigidbody2D>().AddForce(new Vector2(moveSpeed * jumpSpeed * 100, jumpHeight * jumpSpeed));
+                    GetComponent<Rigidbody2D>().AddForce(new Vector2(moveSpeed * jumpSpeed * 150, jumpHeight * jumpSpeed));
                     movementsTaken.Add("jump");
                 }
                 else
@@ -919,7 +940,7 @@ public class Player1 : MonoBehaviour
     }
     void Walk(float speed)
     {
-        gameObject.transform.Translate(speed, 0, 0);
+        rb.AddRelativeForce(new Vector2(speed*50, 0), ForceMode2D.Impulse);
     }
     //Attack types info:
     //First is always attack height. High means only stand block works, low means only crouch block works, mid means anything works.
@@ -942,7 +963,7 @@ public class Player1 : MonoBehaviour
                     }
                     else
                     {
-                        StartCoroutine(Attack(9, 3, 25, 1, .25f, -.5f, 6, 14, new List<string> { "high", "punch", "medium" }, 0, new Vector2(0, 0)));
+                        StartCoroutine(Attack(9, 3, 25, 1, .25f, -.5f, 6, 14, new List<string> { "high", "punch", "hard", "medium" }, 0, new Vector2(0, 0), 1.5f));
                     }
                 }
                 else
@@ -953,7 +974,7 @@ public class Player1 : MonoBehaviour
                     }
                     else
                     {
-                        StartCoroutine(Attack(9, 3, 25, 1, .25f, -.5f, 6, 14, new List<string> { "high", "punch", "medium" }, 0, new Vector2(0, 0)));
+                        StartCoroutine(Attack(9, 3, 25, 1, .25f, -.5f, 6, 14, new List<string> { "high", "punch", "soft", "medium" }, 0, new Vector2(0, 0), 1.5f));
                     }
                 }
             }
@@ -967,7 +988,7 @@ public class Player1 : MonoBehaviour
                     }
                     else
                     {
-                        StartCoroutine(Attack(4, 2, 19, .75f, .5f, -2, 4, 9, new List<string> { "high", "punch", "light" }, 0, new Vector2(0, 0)));
+                        StartCoroutine(Attack(4, 2, 19, .75f, .5f, -2, 4, 9, new List<string> { "high", "punch", "soft", "light" }, 0, new Vector2(0, 0), 1));
                     }
                 }
                 else
@@ -978,7 +999,7 @@ public class Player1 : MonoBehaviour
                     }
                     else
                     {
-                        StartCoroutine(Attack(3, 3, 18, 1, .5f, 0, 3, 9, new List<string> { "high", "punch", "light" }, 0, new Vector2(0, 0)));
+                        StartCoroutine(Attack(3, 3, 18, 1, .5f, 0, 3, 9, new List<string> { "high", "punch", "soft", "light" }, 0, new Vector2(0, 0), 1));
                     }
                 }
             }
@@ -1004,11 +1025,11 @@ public class Player1 : MonoBehaviour
                     {
                         if (isCrouching)
                         {
-                            StartCoroutine(Attack(13, 3, 31, 1f, .6f, -1.5f, 8, 17, new List<string> { "mid", "punch", "medium" }, 0, new Vector2(0, 0)));
+                            StartCoroutine(Attack(13, 3, 31, 1f, .6f, -1.5f, 8, 17, new List<string> { "mid", "punch", "soft", "medium" }, 0, new Vector2(0, 0), 1.5f));
                         }
                         else
                         {
-                            StartCoroutine(Attack(15, 3, 44, .75f, .5f, 0, 15, 22, new List<string> { "mid", "punch", "heavy" }, 0, new Vector2(4, 0)));
+                            StartCoroutine(Attack(15, 3, 44, .75f, .5f, 0, 15, 22, new List<string> { "mid", "punch", "hard", "heavy" }, 10, new Vector2(4, 0), 2));
                         }
                     }
                 }
@@ -1029,11 +1050,11 @@ public class Player1 : MonoBehaviour
                     {
                         if (isCrouching)
                         {
-                            StartCoroutine(Attack(10, 6, 32, .75f, 2f, 1, 10, 17, new List<string> { "mid", "punch", "med" }, 0, new Vector2(0, 0)));
+                            StartCoroutine(Attack(10, 6, 32, .75f, 2f, 1, 10, 17, new List<string> { "mid", "punch", "soft", "med" }, 80, new Vector2(0, 0), 2f));
                         }
                         else
                         {
-                            StartCoroutine(Attack(11, 4, 30, 1.25f, .5f, 0, 8, 17, new List<string> { "mid", "punch", "med" }, 0, new Vector2(0, 0)));
+                            StartCoroutine(Attack(11, 4, 30, 1.25f, .5f, 0, 8, 17, new List<string> { "mid", "punch", "soft", "med" }, 0, new Vector2(0, 0), 1.5f));
                         }
                     }
                 }
@@ -1057,11 +1078,11 @@ public class Player1 : MonoBehaviour
                     {
                         if (isCrouching)
                         {
-                            StartCoroutine(Attack(5, 3, 19, .75f, .5f, -2, 3, 12, new List<string> { "low", "punch", "light" }, 0, new Vector2(0, 0)));
+                            StartCoroutine(Attack(5, 3, 19, .75f, .5f, -2, 3, 12, new List<string> { "low", "punch", "soft", "light" }, 0, new Vector2(0, 0), 1));
                         }
                         else
                         {
-                            StartCoroutine(Attack(17, 5, 25, 1.25f, .75f, 0, 6, 12, new List<string> { "mid", "punch", "light" }, 0, new Vector2(2, 0)));
+                            StartCoroutine(Attack(17, 5, 25, 1.25f, .75f, 0, 6, 12, new List<string> { "mid", "punch", "soft", "light" }, 0, new Vector2(2, 0), 1));
                         }
                     }
                 }
@@ -1082,11 +1103,11 @@ public class Player1 : MonoBehaviour
                     {
                         if (isCrouching)
                         {
-                            StartCoroutine(Attack(6, 2, 19, 1, .5f, -2, 4, 17, new List<string> { "low", "punch", "light" }, 0, new Vector2(0, 0)));
+                            StartCoroutine(Attack(6, 2, 19, 1, .5f, -2, 4, 17, new List<string> { "low", "punch", "soft", "light" }, 0, new Vector2(0, 0), 1));
                         }
                         else
                         {
-                            StartCoroutine(Attack(5, 2, 18, 1, .5f, 0, 4, 12, new List<string> { "mid", "punch", "light" }, 0, new Vector2(0, 0)));
+                            StartCoroutine(Attack(5, 2, 18, 1, .5f, 0, 4, 12, new List<string> { "mid", "punch", "soft", "light" }, 0, new Vector2(0, 0), 1));
                         }
                     }
                 }
@@ -1096,11 +1117,10 @@ public class Player1 : MonoBehaviour
     }
     //attack using info. startup is time until attacking, hitend is when attack ends, ending is when move ends. Ties into endlag.
     //lens are range, damage is obvious, stun is amount of hitstun applied, attackTypes are also important
-    IEnumerator Attack(float startup, float hittime, float ending, float xlen, float ylen, float yadjust, int damage, float stun, List<string> attackTypes, float angle, Vector2 playerMovement)
+    IEnumerator Attack(float startup, float hittime, float ending, float xlen, float ylen, float yadjust, int damage, float stun, List<string> attackTypes, float angle, Vector2 playerMovement, float launch)
     {
         int facingAdjust = facing.Equals("right") ? 1 : -1;
         Vector3 movement = new Vector3(playerMovement.x / hittime * facingAdjust, playerMovement.y / hittime, 0);
-        bool startedAir = isAirborne;
         spriteRenderer.sprite = attacking;
         bool hasHit = false;
         canCancel = false;
@@ -1111,8 +1131,6 @@ public class Player1 : MonoBehaviour
         visual.SetActive(false);
         while (endlag > 0)
         {
-            if (startedAir != isAirborne)
-                endlag = 0;
             if (endlag <= ending - startup && endlag > ending - startup - hittime && !hasHit)
             {
                 visual.transform.position = new Vector3(transform.position.x + xlen * 4 * facingAdjust, playerMovement.y + transform.position.y + yadjust, 0);
@@ -1125,7 +1143,7 @@ public class Player1 : MonoBehaviour
 
                     canCancel = true;
                     combocrouching = true;
-                    enemyHit.gameObject.GetComponent<Player2>().TakeDamage(damage, stun, angle, attackTypes);
+                    enemyHit.gameObject.GetComponent<Player2>().TakeDamage(damage, stun, angle, attackTypes, launch);
                     hasHit = true;
                 }
             }
@@ -1139,37 +1157,50 @@ public class Player1 : MonoBehaviour
 
     }
     //the damage is taken. applies damage, stun, and attack Types. Ties into hitstun.
-    public void TakeDamage(int damage, float stun, float angle, List<string> attackTypes)
+    public void TakeDamage(int damage, float stun, float angle, List<string> attackTypes, float launch)
     {
         hit = true;
         if (attackTypes[0].Equals("mid") && canBlockMid || attackTypes[0].Equals("low") && canBlockLow || attackTypes[0].Equals("high") && canBlockHigh)
         {
-            Block(damage, stun, attackTypes);
+            Block(damage, stun, attackTypes, launch);
         }
         else
         {
+
             blockStunning = false;
             endlag = 0.0f;
-            hitstun = stun;
             health -= damage;
+            hitstun = stun;
+            hardknock = attackTypes[attackTypes.Count - 2].Equals("hard") ? true : false;
 
             if (angle != 0)
             {
+                isCrouching = false;
+                if (facing.Equals("left"))
+                {
+                    // opponent.GetComponent<Rigidbody2D>().velocity = new Vector2(Quaternion.AngleAxis(angle, transform.forward).x * launch * 100, Quaternion.AngleAxis(angle, transform.forward).y * launch * 100);
+                    GetComponent<Rigidbody2D>().velocity = new Vector2(50 * launch * Mathf.Cos(angle * Mathf.Deg2Rad), 50 * launch * Mathf.Sin(angle * Mathf.Deg2Rad));
+                }
+                else
+                {
+                    // opponent.GetComponent<Rigidbody2D>().velocity = new Vector2(Quaternion.AngleAxis(angle, transform.forward).x * launch * 100, Quaternion.AngleAxis(angle, transform.forward).y * launch * 100);
+                    GetComponent<Rigidbody2D>().velocity = new Vector2(-50 * launch * Mathf.Cos(angle * Mathf.Deg2Rad), 50 * launch * Mathf.Sin(angle * Mathf.Deg2Rad));
+                }
 
             }
 
             else if (isAirborne)
             {
-                if (facing.Equals("left") && rb.velocity.x < 0)
+                if (facing.Equals("left") && rb.velocity.x <= 0)
                 {
                     rb.velocity = new Vector2(-rb.velocity.x, rb.velocity.y);
                 }
-                else if (facing.Equals("right") && rb.velocity.x > 0)
+                else if (facing.Equals("right") && rb.velocity.x >= 0)
                 {
                     rb.velocity = new Vector2(-rb.velocity.x, rb.velocity.y);
                 }
             }
-            
+
             else
             {
                 if (attackTypes[attackTypes.Count - 1].Equals("light"))
@@ -1209,7 +1240,7 @@ public class Player1 : MonoBehaviour
         }
     }
     //the attack is blocked, applies reduced damage, stun, and attack types. 
-    void Block(int damage, float stun, List<string> attackTypes)
+    void Block(int damage, float stun, List<string> attackTypes, float launch)
     {
         blockStunning = true;
         endlag = 0;
@@ -1272,6 +1303,30 @@ public class Player1 : MonoBehaviour
             else
                 transform.position = new Vector3(col.gameObject.transform.position.x - 5, transform.position.y, transform.position.z);
             rb.velocity = new Vector2(rb.velocity.x, yvel);
+        }
+    }
+
+    void OnCollisionEnter2D(Collision2D col)
+    {
+        if (col.gameObject.tag.Equals("Ground"))
+        {
+
+            Debug.Log("Collided with ground");
+            if (endlag > 0)
+                endlag = 0;
+            if (hitstun > 0)
+            {
+                hitstun = 0;
+                if (hardknock)
+                {
+                    knockdown = baseknockdowntime;
+                }
+                else
+                {
+                    getup = basegetuptime;
+                }
+                hardknock = false;
+            }
         }
     }
 
