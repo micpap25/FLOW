@@ -166,7 +166,7 @@ public class Player2 : MonoBehaviour
     }
 
     // Update is called once per frame
-    void FixedUpdate()
+    void Update()
     {
         /* foreach (List<bool> l in attacksTaken)
          {

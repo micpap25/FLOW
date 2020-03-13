@@ -57,7 +57,6 @@
      <Compile Include="Assets\Resources\Scripts\Countdown.cs" />
      <Compile Include="Assets\Resources\Scripts\Healthp1.cs" />
      <Compile Include="Assets\Resources\Scripts\Healthp2.cs" />
-     <Compile Include="Assets\Resources\Scripts\Player.cs" />
      <Compile Include="Assets\Resources\Scripts\Player1.cs" />
      <Compile Include="Assets\Resources\Scripts\Player2.cs" />
  <Reference Include="UnityEngine.UI">

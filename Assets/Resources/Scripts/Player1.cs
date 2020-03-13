@@ -27,8 +27,8 @@ public class Player1 : MonoBehaviour
     public float dashSpeed;
     public float jumpSpeed;
     public float jumpHeight;
-    public string facing;
-    public bool hit;
+    private string facing;
+    private bool hit;
     public float startInputRefreshTime;
     public float startDashTime;
     public bool canCrawl;
@@ -43,22 +43,27 @@ public class Player1 : MonoBehaviour
     private bool hardknock;
     private string keyword;
     private string dashdir;
-    public List<string> FrontDashInput;
-    public List<string> BackDashInput;
+    private List<string> FrontDashInput;
+    private List<string> BackDashInput;
     private List<string> QCFInput;
     private List<string> QCBInput;
     private List<string> DQCFInput;
     private List<string> DQCBInput;
     private List<string> DDInput;
-    public List<string> FrontDash;
-    public List<string> BackDash;
+    private List<string> FrontDash;
+    private List<string> BackDash;
     private List<string> QCF;
     private List<string> QCB;
     private List<string> DQCF;
     private List<string> DQCB;
     private List<string> DD;
-    public List<List<bool>> attacksTaken;
-    public List<string> movementsTaken;
+    private KeyCode[] buttons;
+    private KeyCode[] directions;
+    public int[] buttonClocks;
+    public int bufferTime;
+    private bool commandDash;
+    private List<List<bool>> attacksTaken;
+    private List<string> movementsTaken;
     private float dashTime;
     private float inputRefreshTime;
     private bool canCancel;
@@ -70,6 +75,8 @@ public class Player1 : MonoBehaviour
     private bool combocrouching;
     private string mostRecentAttackType;
     private bool blockStunning;
+
+    private int buttonsPressed;
     private BoxCollider2D boxcol;
     private Animator anim;
     private SpriteRenderer spriteRenderer;
@@ -86,8 +93,6 @@ public class Player1 : MonoBehaviour
     private float crouchheight;
     private LayerMask enemies;
     public GameObject visualizer;
-    private bool left;
-    private bool right;
 
     // Use this for initialization
     void Start()
@@ -115,6 +120,13 @@ public class Player1 : MonoBehaviour
         DQCB = new List<string>(DQCBInput);
         DD = new List<string>(DDInput);
         keyword = "none";
+        //The important buttons
+        buttons = new KeyCode[] {KeyCode.T, KeyCode.Y, KeyCode.G, KeyCode.H};
+        directions = new KeyCode[] {KeyCode.W, KeyCode.S, KeyCode.A, KeyCode.D};
+        //The clocks for these buttons
+        buttonClocks = new int[buttons.Length];
+        //Input to dash with LP + HP
+        commandDash = false;
         //list of actions taken. can't  repeat the same action twice in a flow.
         attacksTaken = new List<List<bool>> { };
         movementsTaken = new List<string> { };
@@ -123,7 +135,7 @@ public class Player1 : MonoBehaviour
         //used to check if a move can cancel into a move/jump. true when the attack hits. false otherwise. Must be combined with checking the move's type. 
         canCancel = false;
         //used to check if the character is crouching. Height is lowered & can't move unless isCrawl is true, then they move at CrawlSpeed.
-        isCrouching = true;
+        isCrouching = false;
         //used to check if the character can currently block certain types of attacks
         canBlockHigh = false;
         canBlockMid = false;
@@ -138,6 +150,8 @@ public class Player1 : MonoBehaviour
         knockdown = 0;
         //getup occurs either after knockdown or if ground is hit while in hitstun. Invincible. (might change so it goes into reduced knockdown time first)
         getup = 0;
+        //the number of buttons being pressed simultaneously right now
+        buttonsPressed = 0;
         //aaaaaaaaaaa
         boxcol = GetComponent<BoxCollider2D>();
         //the old and new heights for crouching
@@ -166,7 +180,7 @@ public class Player1 : MonoBehaviour
     }
 
     // Update is called once per frame
-    void FixedUpdate()
+    void Update()
     {
        /* foreach (List<bool> l in attacksTaken)
         {
@@ -179,11 +193,18 @@ public class Player1 : MonoBehaviour
         hit = false;
         bool right = Input.GetKey(KeyCode.D);
         bool left = Input.GetKey(KeyCode.A);
+
+        for (int i = 0; i < buttons.Length; i++){
+            if (Input.GetKeyDown(buttons[i])){
+                buttonClocks[i] = bufferTime;
+            }
+        }
+
         //set important stuff first
        if (opponent.GetComponent<Player2>().hitstun == 0 && endlag == 0)
        {
             attacksTaken = new List<List<bool>> { };
-           movementsTaken = new List<string> { };
+            movementsTaken = new List<string> { };
        }
         if (health <= 0)
             Destroy(gameObject);
@@ -224,17 +245,18 @@ public class Player1 : MonoBehaviour
             isCrouching = false;
         }
 
-        if (gameObject.transform.position.y > 0)
+        if (transform.position.y <= 0)
         {
+            isAirborne = false;
+            rb.velocity = new Vector2(0, 0);
+            transform.position = new Vector3(transform.position.x, 0, transform.position.z);
+            
+        }
+        else {
             isAirborne = true;
             BackDash = new List<string>(BackDashInput);
             FrontDash = new List<string>(FrontDashInput);
             rb.AddForce(-transform.up * jumpSpeed * jumpSpeed);
-        }
-        else if (hitstun == 0)
-        {
-            isAirborne = false;
-            rb.velocity = new Vector2(0, 0);
         }
 
         if (dashTime == -1)
@@ -250,7 +272,7 @@ public class Player1 : MonoBehaviour
         {
             spriteRenderer.sprite = neutral;
 
-            if (left && facing.Equals("right") || right && facing.Equals("left"))
+            if ((left && facing.Equals("right") || right && facing.Equals("left")) && dashTime <= 0)
             {
                 if (isCrouching)
                 {
@@ -339,9 +361,34 @@ public class Player1 : MonoBehaviour
                 dashTime--;
             }
 
-            if (Input.GetKeyDown(KeyCode.A))
+            if (((buttonClocks[0] > 0 && Input.GetKeyDown(buttons[1])) || (buttonClocks[1] > 0 && Input.GetKeyDown(buttons[0]))) && dashTime <= 0) {
+                if (facing.Equals("right")){
+                    if (Input.GetKey(directions[2])){
+                        dashTime = startDashTime;
+                        dashdir = "back";
+                    }
+                    else{
+                        dashTime = startDashTime;
+                        dashdir = "front";
+                    }
+                }
+                else{
+                    if (Input.GetKey(directions[3])){
+                        dashTime = startDashTime;
+                        dashdir = "back";
+                    }
+                    else{
+                        dashTime = startDashTime;
+                        dashdir = "front";
+                    }
+                }
+                buttonClocks[0] = 0;
+                buttonClocks[1] = 0;
+            }
+
+            if (Input.GetKeyDown(KeyCode.A) && dashTime <= 0)
             {
-                if (facing == "left")
+                if (facing.Equals("left"))
                     keyword = "front";
                 else
                     keyword = "back";
@@ -391,11 +438,11 @@ public class Player1 : MonoBehaviour
                 }
             }
 
-            if (Input.GetKeyDown(KeyCode.D))
+            if (Input.GetKeyDown(KeyCode.D) && dashTime <= 0)
             {
 
                 //setting the keyword
-                if (facing == "left")
+                if (facing.Equals("left"))
                     keyword = "back";
                 else
                     keyword = "front";
@@ -440,153 +487,154 @@ public class Player1 : MonoBehaviour
                     }
                 }
             }
-
-            if (isAirborne)
-            {
-                if (Input.GetKey(KeyCode.S))
+            if (dashTime != startDashTime){
+                if (isAirborne)
                 {
-                    if (Input.GetKeyDown(KeyCode.T))
+                    if (Input.GetKey(KeyCode.S))
                     {
-                        AttackChecker(false, false, true, true, false);
-                        attacksTaken.Add(new List<bool> { false, false, true, true, false });
+                        if (Input.GetKeyDown(KeyCode.T))
+                        {
+                            AttackChecker(false, false, true, true, false);
+                            attacksTaken.Add(new List<bool> { false, false, true, true, false });
+                        }
+                        else if (Input.GetKeyDown(KeyCode.Y))
+                        {
+                            AttackChecker(false, true, true, true, false);
+                            attacksTaken.Add(new List<bool> { false, true, true, true, false });
+                        }
+                        else if (Input.GetKeyDown(KeyCode.G))
+                        {
+                            AttackChecker(true, false, true, true, false);
+                            attacksTaken.Add(new List<bool> { true, false, true, true, false });
+                        }
+                        else if (Input.GetKeyDown(KeyCode.H))
+                        {
+                            AttackChecker(true, true, true, true, false);
+                            attacksTaken.Add(new List<bool> { true, true, true, true, false });
+                        }
                     }
-                    if (Input.GetKeyDown(KeyCode.Y))
+                    else
                     {
-                        AttackChecker(false, true, true, true, false);
-                        attacksTaken.Add(new List<bool> { false, true, true, true, false });
-                    }
-                    if (Input.GetKeyDown(KeyCode.G))
-                    {
-                        AttackChecker(true, false, true, true, false);
-                        attacksTaken.Add(new List<bool> { true, false, true, true, false });
-                    }
-                    if (Input.GetKeyDown(KeyCode.H))
-                    {
-                        AttackChecker(true, true, true, true, false);
-                        attacksTaken.Add(new List<bool> { true, true, true, true, false });
+                        if (Input.GetKeyDown(KeyCode.T))
+                        {
+                            AttackChecker(false, false, false, true, false);
+                            attacksTaken.Add(new List<bool> { false, false, false, true, false });
+                        }
+                        else if (Input.GetKeyDown(KeyCode.Y))
+                        {
+                            AttackChecker(false, true, false, true, false);
+                            attacksTaken.Add(new List<bool> { false, true, false, true, false });
+                        }
+                        else if (Input.GetKeyDown(KeyCode.G))
+                        {
+                            AttackChecker(true, false, false, true, false);
+                            attacksTaken.Add(new List<bool> { true, false, false, true, false });
+                        }
+                        else if (Input.GetKeyDown(KeyCode.H))
+                        {
+                            AttackChecker(true, true, false, true, false);
+                            attacksTaken.Add(new List<bool> { true, true, false, true, false });
+                        }
                     }
                 }
                 else
                 {
-                    if (Input.GetKeyDown(KeyCode.T))
+                    if ((left && facing.Equals("left") || right && facing.Equals("right")) && isCrouching)
                     {
-                        AttackChecker(false, false, false, true, false);
-                        attacksTaken.Add(new List<bool> { false, false, false, true, false });
+                        if (Input.GetKeyDown(KeyCode.T))
+                        {
+                            AttackChecker(false, false, true, false, true);
+                            attacksTaken.Add(new List<bool> { false, false, true, false, true });
+                        }
+                        else if (Input.GetKeyDown(KeyCode.Y))
+                        {
+                            AttackChecker(false, true, true, false, true);
+                            attacksTaken.Add(new List<bool> { false, true, true, false, true });
+                        }
+                        else if (Input.GetKeyDown(KeyCode.G))
+                        {
+                            AttackChecker(true, false, true, false, true);
+                            attacksTaken.Add(new List<bool> { true, false, true, false, true });
+                        }
+                        else if (Input.GetKeyDown(KeyCode.H))
+                        {
+                            AttackChecker(true, true, true, false, true);
+                            attacksTaken.Add(new List<bool> { true, true, true, false, true });
+                        }
                     }
-                    if (Input.GetKeyDown(KeyCode.Y))
+                    else if (left && facing.Equals("left") || right && facing.Equals("right"))
                     {
-                        AttackChecker(false, true, false, true, false);
-                        attacksTaken.Add(new List<bool> { false, true, false, true, false });
+                        if (Input.GetKeyDown(KeyCode.T))
+                        {
+                            AttackChecker(false, false, true, false, false);
+                            attacksTaken.Add(new List<bool> { false, false, true, false, false });
+                        }
+                        else if (Input.GetKeyDown(KeyCode.Y))
+                        {
+                            AttackChecker(false, true, true, false, false);
+                            attacksTaken.Add(new List<bool> { false, true, true, false, false });
+                        }
+                        else if (Input.GetKeyDown(KeyCode.G))
+                        {
+                            AttackChecker(true, false, true, false, false);
+                            attacksTaken.Add(new List<bool> { true, false, true, false, false });
+                        }
+                        else if (Input.GetKeyDown(KeyCode.H))
+                        {
+                            AttackChecker(true, true, true, false, false);
+                            attacksTaken.Add(new List<bool> { true, true, true, false, false });
+                        }
                     }
-                    if (Input.GetKeyDown(KeyCode.G))
+                    else if (isCrouching)
                     {
-                        AttackChecker(true, false, false, true, false);
-                        attacksTaken.Add(new List<bool> { true, false, false, true, false });
+                        if (Input.GetKeyDown(KeyCode.T))
+                        {
+                            AttackChecker(false, false, false, false, true);
+                            attacksTaken.Add(new List<bool> { false, false, false, false, true });
+                        }
+                        else if (Input.GetKeyDown(KeyCode.Y))
+                        {
+                            AttackChecker(false, true, false, false, true);
+                            attacksTaken.Add(new List<bool> { false, true, false, false, true });
+                        }
+                        else if (Input.GetKeyDown(KeyCode.G))
+                        {
+                            AttackChecker(true, false, false, false, true);
+                            attacksTaken.Add(new List<bool> { true, false, false, false, true });
+                        }
+                        else if (Input.GetKeyDown(KeyCode.H))
+                        {
+                            AttackChecker(true, true, false, false, true);
+                            attacksTaken.Add(new List<bool> { true, true, false, false, true });
+                        }
                     }
-                    if (Input.GetKeyDown(KeyCode.H))
+                    else
                     {
-                        AttackChecker(true, true, false, true, false);
-                        attacksTaken.Add(new List<bool> { true, true, false, true, false });
-                    }
-                }
-            }
-            else
-            {
-                if ((left && facing.Equals("left") || right && facing.Equals("right")) && isCrouching)
-                {
-                    if (Input.GetKeyDown(KeyCode.T))
-                    {
-                        AttackChecker(false, false, true, false, true);
-                        attacksTaken.Add(new List<bool> { false, false, true, false, true });
-                    }
-                    if (Input.GetKeyDown(KeyCode.Y))
-                    {
-                        AttackChecker(false, true, true, false, true);
-                        attacksTaken.Add(new List<bool> { false, true, true, false, true });
-                    }
-                    if (Input.GetKeyDown(KeyCode.G))
-                    {
-                        AttackChecker(true, false, true, false, true);
-                        attacksTaken.Add(new List<bool> { true, false, true, false, true });
-                    }
-                    if (Input.GetKeyDown(KeyCode.H))
-                    {
-                        AttackChecker(true, true, true, false, true);
-                        attacksTaken.Add(new List<bool> { true, true, true, false, true });
-                    }
-                }
-                else if (left && facing.Equals("left") || right && facing.Equals("right"))
-                {
-                    if (Input.GetKeyDown(KeyCode.T))
-                    {
-                        AttackChecker(false, false, true, false, false);
-                        attacksTaken.Add(new List<bool> { false, false, true, false, false });
-                    }
-                    if (Input.GetKeyDown(KeyCode.Y))
-                    {
-                        AttackChecker(false, true, true, false, false);
-                        attacksTaken.Add(new List<bool> { false, true, true, false, false });
-                    }
-                    if (Input.GetKeyDown(KeyCode.G))
-                    {
-                        AttackChecker(true, false, true, false, false);
-                        attacksTaken.Add(new List<bool> { true, false, true, false, false });
-                    }
-                    if (Input.GetKeyDown(KeyCode.H))
-                    {
-                        AttackChecker(true, true, true, false, false);
-                        attacksTaken.Add(new List<bool> { true, true, true, false, false });
-                    }
-                }
-                else if (isCrouching)
-                {
-                    if (Input.GetKeyDown(KeyCode.T))
-                    {
-                        AttackChecker(false, false, false, false, true);
-                        attacksTaken.Add(new List<bool> { false, false, false, false, true });
-                    }
-                    if (Input.GetKeyDown(KeyCode.Y))
-                    {
-                        AttackChecker(false, true, false, false, true);
-                        attacksTaken.Add(new List<bool> { false, true, false, false, true });
-                    }
-                    if (Input.GetKeyDown(KeyCode.G))
-                    {
-                        AttackChecker(true, false, false, false, true);
-                        attacksTaken.Add(new List<bool> { true, false, false, false, true });
-                    }
-                    if (Input.GetKeyDown(KeyCode.H))
-                    {
-                        AttackChecker(true, true, false, false, true);
-                        attacksTaken.Add(new List<bool> { true, true, false, false, true });
-                    }
-                }
-                else
-                {
-                    if (Input.GetKeyDown(KeyCode.T))
-                    {
-                        AttackChecker(false, false, false, false, false);
-                        attacksTaken.Add(new List<bool> { false, false, false, false, false });
-                    }
-                    if (Input.GetKeyDown(KeyCode.Y))
-                    {
-                        AttackChecker(false, true, false, false, false);
-                        attacksTaken.Add(new List<bool> { false, true, false, false, false });
-                    }
-                    if (Input.GetKeyDown(KeyCode.G))
-                    {
-                        AttackChecker(true, false, false, false, false);
-                        attacksTaken.Add(new List<bool> { true, false, false, false, false });
-                    }
-                    if (Input.GetKeyDown(KeyCode.H))
-                    {
-                        AttackChecker(true, true, false, false, false);
-                        attacksTaken.Add(new List<bool> { true, true, false, false, false });
+                        if (Input.GetKeyDown(KeyCode.T))
+                        {
+                            AttackChecker(false, false, false, false, false);
+                            attacksTaken.Add(new List<bool> { false, false, false, false, false });
+                        }
+                        else if (Input.GetKeyDown(KeyCode.Y))
+                        {
+                            AttackChecker(false, true, false, false, false);
+                            attacksTaken.Add(new List<bool> { false, true, false, false, false });
+                        }
+                        else if (Input.GetKeyDown(KeyCode.G))
+                        {
+                            AttackChecker(true, false, false, false, false);
+                            attacksTaken.Add(new List<bool> { true, false, false, false, false });
+                        }
+                        else if (Input.GetKeyDown(KeyCode.H))
+                        {
+                            AttackChecker(true, true, false, false, false);
+                            attacksTaken.Add(new List<bool> { true, true, false, false, false });
+                        }
                     }
                 }
-            }
 
 
+            }
         }
         //check for actions that can be taken in either neutral or mid-attack(jumping, attacking, inputs for specials, supers)
         else if (hitstun == 0 && canCancel)
@@ -654,10 +702,38 @@ public class Player1 : MonoBehaviour
                 dashTime--;
             }
 
+            if (((buttonClocks[0] > 0 && Input.GetKeyDown(buttons[1])) || (buttonClocks[1] > 0 && Input.GetKeyDown(buttons[0]))) && dashTime <= 0) {
+                if (facing.Equals("right")){
+                    if (Input.GetKey(directions[2])){
+                        dashTime = startDashTime;
+                        dashdir = "back";
+                        movementsTaken.Add("dash");
+                    }
+                    else{
+                        dashTime = startDashTime;
+                        dashdir = "front";
+                        movementsTaken.Add("dash");
+                    }
+                }
+                else{
+                    if (Input.GetKey(directions[3])){
+                        dashTime = startDashTime;
+                        dashdir = "back";
+                        movementsTaken.Add("dash");
+                    }
+                    else{
+                        dashTime = startDashTime;
+                        dashdir = "front";
+                        movementsTaken.Add("dash");
+                    }
+                }
+                buttonClocks[0] = 0;
+                buttonClocks[1] = 0;
+            }
 
             if (Input.GetKeyDown(KeyCode.A))
             {
-                if (facing == "left")
+                if (facing.Equals("left"))
                     keyword = "front";
                 else
                     keyword = "back";
@@ -713,7 +789,7 @@ public class Player1 : MonoBehaviour
             {
 
                 //setting the keyword
-                if (facing == "left")
+                if (facing.Equals("left"))
                     keyword = "back";
                 else
                     keyword = "front";
@@ -760,148 +836,149 @@ public class Player1 : MonoBehaviour
                     }
                 }
             }
-
-            if (isAirborne)
-            {
-                if (Input.GetKey(KeyCode.S))
+            if (dashTime != startDashTime){
+                if (isAirborne)
                 {
-                    if (Input.GetKeyDown(KeyCode.T) && !attacksTakenComparison(attacksTaken, false, false, true, true, false))
+                    if (Input.GetKey(KeyCode.S))
                     {
-                        AttackChecker(false, false, true, true, false);
-                        attacksTaken.Add(new List<bool> { false, false, true, true, false });
+                        if (Input.GetKeyDown(KeyCode.T) && !attacksTakenComparison(attacksTaken, false, false, true, true, false))
+                        {
+                            AttackChecker(false, false, true, true, false);
+                            attacksTaken.Add(new List<bool> { false, false, true, true, false });
+                        }
+                        else if (Input.GetKeyDown(KeyCode.Y) && !attacksTakenComparison(attacksTaken, false, true, true, true, false))
+                        {
+                            AttackChecker(false, true, true, true, false);
+                            attacksTaken.Add(new List<bool> { false, true, true, true, false });
+                        }
+                        else if (Input.GetKeyDown(KeyCode.G) && !attacksTakenComparison(attacksTaken, true, false, true, true, false))
+                        {
+                            AttackChecker(true, false, true, true, false);
+                            attacksTaken.Add(new List<bool> { true, false, true, true, false });
+                        }
+                        else if (Input.GetKeyDown(KeyCode.H) && !attacksTakenComparison(attacksTaken, true, true, true, true, false))
+                        {
+                            AttackChecker(true, true, true, true, false);
+                            attacksTaken.Add(new List<bool> { true, true, true, true, false });
+                        }
                     }
-                    if (Input.GetKeyDown(KeyCode.Y) && !attacksTakenComparison(attacksTaken, false, true, true, true, false))
+                    else
                     {
-                        AttackChecker(false, true, true, true, false);
-                        attacksTaken.Add(new List<bool> { false, true, true, true, false });
-                    }
-                    if (Input.GetKeyDown(KeyCode.G) && !attacksTakenComparison(attacksTaken, true, false, true, true, false))
-                    {
-                        AttackChecker(true, false, true, true, false);
-                        attacksTaken.Add(new List<bool> { true, false, true, true, false });
-                    }
-                    if (Input.GetKeyDown(KeyCode.H) && !attacksTakenComparison(attacksTaken, true, true, true, true, false))
-                    {
-                        AttackChecker(true, true, true, true, false);
-                        attacksTaken.Add(new List<bool> { true, true, true, true, false });
+                        if (Input.GetKeyDown(KeyCode.T) && !attacksTakenComparison(attacksTaken, false, false, false, true, false))
+                        {
+                            AttackChecker(false, false, false, true, false);
+                            attacksTaken.Add(new List<bool> { false, false, false, true, false });
+                        }
+                        else if (Input.GetKeyDown(KeyCode.Y) && !attacksTakenComparison(attacksTaken, false, true, false, true, false))
+                        {
+                            AttackChecker(false, true, false, true, false);
+                            attacksTaken.Add(new List<bool> { false, true, false, true, false });
+                        }
+                        else if (Input.GetKeyDown(KeyCode.G) && !attacksTakenComparison(attacksTaken, true, false, false, true, false))
+                        {
+                            AttackChecker(true, false, false, true, false);
+                            attacksTaken.Add(new List<bool> { true, false, false, true, false });
+                        }
+                        else if (Input.GetKeyDown(KeyCode.H) && !attacksTakenComparison(attacksTaken, true, true, false, true, false))
+                        {
+                            AttackChecker(true, true, false, true, false);
+                            attacksTaken.Add(new List<bool> { true, true, false, true, false });
+                        }
                     }
                 }
                 else
                 {
-                    if (Input.GetKeyDown(KeyCode.T) && !attacksTakenComparison(attacksTaken, false, false, false, true, false))
+                    if ((left && facing.Equals("left") || right && facing.Equals("right")) && isCrouching)
                     {
-                        AttackChecker(false, false, false, true, false);
-                        attacksTaken.Add(new List<bool> { false, false, false, true, false });
+                        if (Input.GetKeyDown(KeyCode.T) && !attacksTakenComparison(attacksTaken, false, false, true, false, true))
+                        {
+                            AttackChecker(false, false, true, false, true);
+                            attacksTaken.Add(new List<bool> { false, false, true, false, true });
+                        }
+                        else if (Input.GetKeyDown(KeyCode.Y) && !attacksTakenComparison(attacksTaken, false, true, true, false, true))
+                        {
+                            AttackChecker(false, true, true, false, true);
+                            attacksTaken.Add(new List<bool> { false, true, true, false, true });
+                        }
+                        else if (Input.GetKeyDown(KeyCode.G) && !attacksTakenComparison(attacksTaken, true, false, true, false, true))
+                        {
+                            AttackChecker(true, false, true, false, true);
+                            attacksTaken.Add(new List<bool> { true, false, true, false, true });
+                        }
+                        else if (Input.GetKeyDown(KeyCode.H) && !attacksTakenComparison(attacksTaken, true, true, true, false, true))
+                        {
+                            AttackChecker(true, true, true, false, true);
+                            attacksTaken.Add(new List<bool> { true, true, true, false, true });
+                        }
                     }
-                    if (Input.GetKeyDown(KeyCode.Y) && !attacksTakenComparison(attacksTaken, false, true, false, true, false))
+                    else if (left && facing.Equals("left") || right && facing.Equals("right"))
                     {
-                        AttackChecker(false, true, false, true, false);
-                        attacksTaken.Add(new List<bool> { false, true, false, true, false });
+                        if (Input.GetKeyDown(KeyCode.T) && !attacksTakenComparison(attacksTaken, false, false, true, false, false))
+                        {
+                            AttackChecker(false, false, true, false, false);
+                            attacksTaken.Add(new List<bool> { false, false, true, false, false });
+                        }
+                        else if (Input.GetKeyDown(KeyCode.Y) && !attacksTakenComparison(attacksTaken, false, true, true, false, false))
+                        {
+                            AttackChecker(false, true, true, false, false);
+                            attacksTaken.Add(new List<bool> { false, true, true, false, false });
+                        }
+                        else if (Input.GetKeyDown(KeyCode.G) && !attacksTakenComparison(attacksTaken, true, false, true, false, false))
+                        {
+                            AttackChecker(true, false, true, false, false);
+                            attacksTaken.Add(new List<bool> { true, false, true, false, false });
+                        }
+                        else if (Input.GetKeyDown(KeyCode.H) && !attacksTakenComparison(attacksTaken, true, true, true, false, false))
+                        {
+                            AttackChecker(true, true, true, false, false);
+                            attacksTaken.Add(new List<bool> { true, true, true, false, false });
+                        }
                     }
-                    if (Input.GetKeyDown(KeyCode.G) && !attacksTakenComparison(attacksTaken, true, false, false, true, false))
+                    else if (isCrouching)
                     {
-                        AttackChecker(true, false, false, true, false);
-                        attacksTaken.Add(new List<bool> { true, false, false, true, false });
+                        if (Input.GetKeyDown(KeyCode.T) && !attacksTakenComparison(attacksTaken, false, false, false, false, true))
+                        {
+                            AttackChecker(false, false, false, false, true);
+                            attacksTaken.Add(new List<bool> { false, false, false, false, true });
+                        }
+                        else if (Input.GetKeyDown(KeyCode.Y) && !attacksTakenComparison(attacksTaken, false, true, false, false, true))
+                        {
+                            AttackChecker(false, true, false, false, true);
+                            attacksTaken.Add(new List<bool> { false, true, false, false, true });
+                        }
+                        else if (Input.GetKeyDown(KeyCode.G) && !attacksTakenComparison(attacksTaken, true, false, false, false, true))
+                        {
+                            AttackChecker(true, false, false, false, true);
+                            attacksTaken.Add(new List<bool> { true, false, false, false, true });
+                        }
+                        else if (Input.GetKeyDown(KeyCode.H) && !attacksTakenComparison(attacksTaken, true, true, false, false, true))
+                        {
+                            AttackChecker(true, true, false, false, true);
+                            attacksTaken.Add(new List<bool> { true, true, false, false, true });
+                        }
                     }
-                    if (Input.GetKeyDown(KeyCode.H) && !attacksTakenComparison(attacksTaken, true, true, false, true, false))
+                    else
                     {
-                        AttackChecker(true, true, false, true, false);
-                        attacksTaken.Add(new List<bool> { true, true, false, true, false });
-                    }
-                }
-            }
-            else
-            {
-                if ((left && facing.Equals("left") || right && facing.Equals("right")) && isCrouching)
-                {
-                    if (Input.GetKeyDown(KeyCode.T) && !attacksTakenComparison(attacksTaken, false, false, true, false, true))
-                    {
-                        AttackChecker(false, false, true, false, true);
-                        attacksTaken.Add(new List<bool> { false, false, true, false, true });
-                    }
-                    if (Input.GetKeyDown(KeyCode.Y) && !attacksTakenComparison(attacksTaken, false, true, true, false, true))
-                    {
-                        AttackChecker(false, true, true, false, true);
-                        attacksTaken.Add(new List<bool> { false, true, true, false, true });
-                    }
-                    if (Input.GetKeyDown(KeyCode.G) && !attacksTakenComparison(attacksTaken, true, false, true, false, true))
-                    {
-                        AttackChecker(true, false, true, false, true);
-                        attacksTaken.Add(new List<bool> { true, false, true, false, true });
-                    }
-                    if (Input.GetKeyDown(KeyCode.H) && !attacksTakenComparison(attacksTaken, true, true, true, false, true))
-                    {
-                        AttackChecker(true, true, true, false, true);
-                        attacksTaken.Add(new List<bool> { true, true, true, false, true });
-                    }
-                }
-                else if (left && facing.Equals("left") || right && facing.Equals("right"))
-                {
-                    if (Input.GetKeyDown(KeyCode.T) && !attacksTakenComparison(attacksTaken, false, false, true, false, false))
-                    {
-                        AttackChecker(false, false, true, false, false);
-                        attacksTaken.Add(new List<bool> { false, false, true, false, false });
-                    }
-                    if (Input.GetKeyDown(KeyCode.Y) && !attacksTakenComparison(attacksTaken, false, true, true, false, false))
-                    {
-                        AttackChecker(false, true, true, false, false);
-                        attacksTaken.Add(new List<bool> { false, true, true, false, false });
-                    }
-                    if (Input.GetKeyDown(KeyCode.G) && !attacksTakenComparison(attacksTaken, true, false, true, false, false))
-                    {
-                        AttackChecker(true, false, true, false, false);
-                        attacksTaken.Add(new List<bool> { true, false, true, false, false });
-                    }
-                    if (Input.GetKeyDown(KeyCode.H) && !attacksTakenComparison(attacksTaken, true, true, true, false, false))
-                    {
-                        AttackChecker(true, true, true, false, false);
-                        attacksTaken.Add(new List<bool> { true, true, true, false, false });
-                    }
-                }
-                else if (isCrouching)
-                {
-                    if (Input.GetKeyDown(KeyCode.T) && !attacksTakenComparison(attacksTaken, false, false, false, false, true))
-                    {
-                        AttackChecker(false, false, false, false, true);
-                        attacksTaken.Add(new List<bool> { false, false, false, false, true });
-                    }
-                    if (Input.GetKeyDown(KeyCode.Y) && !attacksTakenComparison(attacksTaken, false, true, false, false, true))
-                    {
-                        AttackChecker(false, true, false, false, true);
-                        attacksTaken.Add(new List<bool> { false, true, false, false, true });
-                    }
-                    if (Input.GetKeyDown(KeyCode.G) && !attacksTakenComparison(attacksTaken, true, false, false, false, true))
-                    {
-                        AttackChecker(true, false, false, false, true);
-                        attacksTaken.Add(new List<bool> { true, false, false, false, true });
-                    }
-                    if (Input.GetKeyDown(KeyCode.H) && !attacksTakenComparison(attacksTaken, true, true, false, false, true))
-                    {
-                        AttackChecker(true, true, false, false, true);
-                        attacksTaken.Add(new List<bool> { true, true, false, false, true });
-                    }
-                }
-                else
-                {
-                    if (Input.GetKeyDown(KeyCode.T) && !attacksTakenComparison(attacksTaken, false, false, false, false, false))
-                    {
-                        AttackChecker(false, false, false, false, false);
-                        attacksTaken.Add(new List<bool> { false, false, false, false, false });
-                    }
-                    if (Input.GetKeyDown(KeyCode.Y) && !attacksTakenComparison(attacksTaken, false, true, false, false, false))
-                    {
-                        AttackChecker(false, true, false, false, false);
-                        attacksTaken.Add(new List<bool> { false, true, false, false, false });
-                    }
-                    if (Input.GetKeyDown(KeyCode.G) && !attacksTakenComparison(attacksTaken, true, false, false, false, false))
-                    {
-                        AttackChecker(true, false, false, false, false);
-                        attacksTaken.Add(new List<bool> { true, false, false, false, false });
-                    }
-                    if (Input.GetKeyDown(KeyCode.H) && !attacksTakenComparison(attacksTaken, true, true, false, false, false))
-                    {
-                        AttackChecker(true, true, false, false, false);
-                        attacksTaken.Add(new List<bool> { true, true, false, false, false });
+                        if (Input.GetKeyDown(KeyCode.T) && !attacksTakenComparison(attacksTaken, false, false, false, false, false))
+                        {
+                            AttackChecker(false, false, false, false, false);
+                            attacksTaken.Add(new List<bool> { false, false, false, false, false });
+                        }
+                        else if (Input.GetKeyDown(KeyCode.Y) && !attacksTakenComparison(attacksTaken, false, true, false, false, false))
+                        {
+                            AttackChecker(false, true, false, false, false);
+                            attacksTaken.Add(new List<bool> { false, true, false, false, false });
+                        }
+                        else if (Input.GetKeyDown(KeyCode.G) && !attacksTakenComparison(attacksTaken, true, false, false, false, false))
+                        {
+                            AttackChecker(true, false, false, false, false);
+                            attacksTaken.Add(new List<bool> { true, false, false, false, false });
+                        }
+                        else if (Input.GetKeyDown(KeyCode.H) && !attacksTakenComparison(attacksTaken, true, true, false, false, false))
+                        {
+                            AttackChecker(true, true, false, false, false);
+                            attacksTaken.Add(new List<bool> { true, true, false, false, false });
+                        }
                     }
                 }
             }
@@ -932,6 +1009,10 @@ public class Player1 : MonoBehaviour
             DQCF = new List<string>(DQCFInput);
             DQCB = new List<string>(DQCBInput);
             DD = new List<string>(DDInput);
+        }
+        for (int i = 0; i < buttonClocks.Length; i++){
+            if (buttonClocks[i] > 0)
+                buttonClocks[i]--;
         }
         if (inputRefreshTime > 0)
             inputRefreshTime--;
