@@ -10,6 +10,7 @@ public class CameraControls : MonoBehaviour {
 
 	// Use this for initialization
 	void Start () {
+		Application.targetFrameRate = 60;
 	    playeroneposition = GameObject.FindGameObjectWithTag ("Player1").transform.position;
 	    playertwoposition = GameObject.FindGameObjectWithTag ("Player2").transform.position;
 

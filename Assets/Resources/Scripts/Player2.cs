@@ -92,6 +92,7 @@ public class Player2 : MonoBehaviour
     // Use this for initialization
     void Start()
     {
+        Application.targetFrameRate = 60;
         //set hitstun and endlag. hitstun is for damage lag, endlag is for move lag. Eventually split endlag into endlag, dashlag, and blocklag.
         hitstun = 0;
         endlag = 0;
@@ -1178,12 +1179,12 @@ public class Player2 : MonoBehaviour
                 if (facing.Equals("left"))
                 {
                     // opponent.GetComponent<Rigidbody2D>().velocity = new Vector2(Quaternion.AngleAxis(angle, transform.forward).x * launch * 100, Quaternion.AngleAxis(angle, transform.forward).y * launch * 100);
-                    GetComponent<Rigidbody2D>().velocity = new Vector2(50 * launch * Mathf.Cos(angle * Mathf.Deg2Rad), 50 * launch * Mathf.Sin(angle * Mathf.Deg2Rad));
+                    rb.velocity = new Vector2( jumpSpeed * launch * Mathf.Cos(angle * Mathf.Deg2Rad) * 3, jumpSpeed* launch * Mathf.Sin(angle * Mathf.Deg2Rad) * 3);
                 }
                 else
                 {
                     // opponent.GetComponent<Rigidbody2D>().velocity = new Vector2(Quaternion.AngleAxis(angle, transform.forward).x * launch * 100, Quaternion.AngleAxis(angle, transform.forward).y * launch * 100);
-                    GetComponent<Rigidbody2D>().velocity = new Vector2(-50 * launch * Mathf.Cos(angle * Mathf.Deg2Rad), 50 * launch * Mathf.Sin(angle * Mathf.Deg2Rad));
+                    rb.velocity = new Vector2(-jumpSpeed * launch * Mathf.Cos(angle * Mathf.Deg2Rad) * 3, jumpSpeed * launch * Mathf.Sin(angle * Mathf.Deg2Rad) * 3);
                 }
 
             }
